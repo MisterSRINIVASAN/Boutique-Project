@@ -89,7 +89,7 @@ def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)):
 
 @router.get("/mine", response_model=List[schemas.OrderResponse])
 def get_my_orders(current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
-    orders = db.query(models.Order).filter(models.Order.user_id == current_user.email).all()
+    orders = db.query(models.Order).filter(models.Order.user_id == current_user.id).all()
     return orders
 
 @router.get("/{order_id}", response_model=schemas.OrderResponse)

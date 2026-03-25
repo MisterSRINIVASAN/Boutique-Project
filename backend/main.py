@@ -9,10 +9,13 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Attire By Sush API", description="Boutique Clothing Platform Backend")
 
+# CORS Configuration
+origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Restrict this in production
-    allow_credentials=True,
+    allow_origins=origins,
+    allow_credentials=True if origins[0] != "*" else False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
