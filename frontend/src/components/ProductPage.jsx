@@ -17,7 +17,7 @@ export default function ProductPage() {
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const res = await fetch(`http://127.0.0.1:8000/api/products/${id}`);
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/products/${id}`);
         if (!res.ok) throw new Error('Failed to fetch');
         const data = await res.json();
         setProduct(data);

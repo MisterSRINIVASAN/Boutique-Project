@@ -19,11 +19,11 @@ export default function Homepage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const prodRes = await fetch('http://127.0.0.1:8000/api/products');
+        const prodRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/products`);
         if (!prodRes.ok) throw new Error('Failed to fetch products');
         setProducts(await prodRes.json());
 
-        const catRes = await fetch('http://127.0.0.1:8000/api/products/categories');
+        const catRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/products/categories`);
         if (!catRes.ok) throw new Error('Failed to fetch categories');
         setCategories(await catRes.json());
       } catch (err) {

@@ -37,7 +37,7 @@ export default function AdminDashboard() {
 
   const fetchInventory = async () => {
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/admin/inventory', {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/admin/inventory`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (res.status === 401) {
@@ -47,17 +47,17 @@ export default function AdminDashboard() {
       const data = await res.json();
       setInventory(data);
       
-      const ordersRes = await fetch('http://127.0.0.1:8000/api/admin/orders', {
+      const ordersRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/admin/orders`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       setOrders(await ordersRes.json());
 
-      const notifRes = await fetch('http://127.0.0.1:8000/api/admin/notifications', {
+      const notifRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/admin/notifications`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       setNotifications(await notifRes.json());
 
-      const catRes = await fetch('http://127.0.0.1:8000/api/admin/categories', {
+      const catRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/admin/categories`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const catData = await catRes.json();
@@ -66,7 +66,7 @@ export default function AdminDashboard() {
         setProductForm(prev => ({ ...prev, category_id: catData[0].id }));
       }
 
-      const lbRes = await fetch('http://127.0.0.1:8000/api/admin/lookbook', {
+      const lbRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/admin/lookbook`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       setLookbook(await lbRes.json());
@@ -105,7 +105,7 @@ export default function AdminDashboard() {
           formData.append('files', selectedFiles[i]);
         }
         
-        const uploadRes = await fetch('http://127.0.0.1:8000/api/admin/upload', {
+        const uploadRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/admin/upload`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}` },
           body: formData
@@ -126,7 +126,7 @@ export default function AdminDashboard() {
         sizes: sizes
       };
       
-      const res = await fetch('http://127.0.0.1:8000/api/admin/products', {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/admin/products`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -153,7 +153,7 @@ export default function AdminDashboard() {
   const handleAddCategory = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/admin/categories', {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/admin/categories`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -163,7 +163,7 @@ export default function AdminDashboard() {
       });
       if (!res.ok) throw new Error('Failed to add category');
       setNewCategoryName('');
-      const catRes = await fetch('http://127.0.0.1:8000/api/admin/categories', {
+      const catRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/admin/categories`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       setCategories(await catRes.json());
@@ -174,7 +174,7 @@ export default function AdminDashboard() {
 
   const handleMarkDispatched = async (orderId) => {
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/admin/orders/${orderId}/dispatch`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/admin/orders/${orderId}/dispatch`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -185,7 +185,7 @@ export default function AdminDashboard() {
       setSelectedOrder(null);
       
       // Also refresh notifications to show the dispatch log
-      const notifRes = await fetch('http://127.0.0.1:8000/api/admin/notifications', {
+      const notifRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/admin/notifications`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       setNotifications(await notifRes.json());
@@ -201,7 +201,7 @@ export default function AdminDashboard() {
       const formData = new FormData();
       formData.append('files', newLookbookItem.file);
       
-      const uploadRes = await fetch('http://127.0.0.1:8000/api/admin/upload', {
+      const uploadRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/admin/upload`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData
@@ -210,7 +210,7 @@ export default function AdminDashboard() {
       const imageUrl = uploadData.urls[0];
 
       // 2. Create Item
-      const res = await fetch('http://127.0.0.1:8000/api/admin/lookbook', {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/admin/lookbook`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -232,7 +232,7 @@ export default function AdminDashboard() {
 
   const handleDeleteLookbookItem = async (id) => {
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/admin/lookbook/${id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/admin/lookbook/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });

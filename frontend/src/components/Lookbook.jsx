@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from 'react';
 
 const fallbackLookbook = [
-  { image_url: 'http://127.0.0.1:8000/uploads/vibrant_anarkali.png', title: 'Royal Zari Anarkali', description: 'Hand-woven silk with traditional zari work.' },
-  { image_url: 'http://127.0.0.1:8000/uploads/electric_blue_lehanga.png', title: 'Mirror Work Lehanga', description: 'Electric blue georgette with artisan mirror accents.' },
-  { image_url: 'http://127.0.0.1:8000/uploads/neon_pink_kurti.png', title: 'Neon Pink Designer Kurti', description: 'Modern silhouette meets traditional craft.' },
-  { image_url: 'http://127.0.0.1:8000/uploads/emerald_gown.png', title: 'Emerald Party Gown', description: 'Rich velvet drape for evening elegance.' },
-  { image_url: 'http://127.0.0.1:8000/uploads/lavender_sharara.png', title: 'Lavender Sharara Set', description: 'Delicate organic cotton with intricate threadwork.' },
-  { image_url: 'http://127.0.0.1:8000/uploads/maroon_velvet.png', title: 'Maroon Velvet Ensemble', description: 'Luxurious heavy velvet for a festive statement.' },
-  { image_url: 'http://127.0.0.1:8000/uploads/pastel_mint.png', title: 'Pastel Mint Dhoti Set', description: 'Contemporary twist on a classic ethnic silhouette.' },
-  { image_url: 'http://127.0.0.1:8000/uploads/gold_suit.png', title: 'Gold Embroidered Suit', description: 'Tussar silk with opulent golden embroidery.' },
+  { image_url: `${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/uploads/vibrant_anarkali.png`, title: 'Royal Zari Anarkali', description: 'Hand-woven silk with traditional zari work.' },
+  { image_url: `${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/uploads/electric_blue_lehanga.png`, title: 'Mirror Work Lehanga', description: 'Electric blue georgette with artisan mirror accents.' },
+  { image_url: `${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/uploads/neon_pink_kurti.png`, title: 'Neon Pink Designer Kurti', description: 'Modern silhouette meets traditional craft.' },
+  { image_url: `${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/uploads/emerald_gown.png`, title: 'Emerald Party Gown', description: 'Rich velvet drape for evening elegance.' },
+  { image_url: `${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/uploads/lavender_sharara.png`, title: 'Lavender Sharara Set', description: 'Delicate organic cotton with intricate threadwork.' },
+  { image_url: `${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/uploads/maroon_velvet.png`, title: 'Maroon Velvet Ensemble', description: 'Luxurious heavy velvet for a festive statement.' },
+  { image_url: `${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/uploads/pastel_mint.png`, title: 'Pastel Mint Dhoti Set', description: 'Contemporary twist on a classic ethnic silhouette.' },
+  { image_url: `${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/uploads/gold_suit.png`, title: 'Gold Embroidered Suit', description: 'Tussar silk with opulent golden embroidery.' },
 ];
 
 export default function Lookbook({ onClose }) {
   const [lookbookImages, setLookbookImages] = useState([]);
 
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/api/products/lookbook/all')
+    fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/products/lookbook/all`)
       .then(res => res.json())
       .then(data => {
         if (data && data.length > 0) {
