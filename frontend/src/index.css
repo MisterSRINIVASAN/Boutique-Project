@@ -1,0 +1,92 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --boutique-gold: #D4AF37;
+  --boutique-charcoal: #1A1A1A;
+  --boutique-cream: #FDFBF7;
+  --boutique-lavender: #E6E6FA;
+  --vibrant-pink: #FF0080;
+  --vibrant-purple: #7928CA;
+  --vibrant-orange: #FF4D4D;
+  --glass-bg: rgba(255, 255, 255, 0.4);
+  --glass-border: rgba(255, 255, 255, 0.2);
+}
+
+body {
+  font-family: 'Outfit', sans-serif;
+  background: linear-gradient(135deg, #fdfbf7 0%, #e6e6fa 50%, #fff0f3 100%);
+  background-attachment: fixed;
+  color: var(--boutique-charcoal);
+  overflow-x: hidden;
+}
+
+/* Totally Colorful Accents */
+.text-vibrant-gradient {
+  background: linear-gradient(to right, var(--vibrant-pink), var(--vibrant-purple));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.bg-colorful-gradient {
+  background: linear-gradient(135deg, #FF0080 0%, #7928CA 100%);
+}
+
+.bg-warm-gradient {
+  background: linear-gradient(135deg, #FF4D4D 0%, #F9CB28 100%);
+}
+
+/* Glassmorphism with Color Tint */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+}
+
+.glass-vibrant {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 10px 40px rgba(121, 40, 202, 0.15);
+}
+
+/* Animations */
+@keyframes titleFloat {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0); }
+}
+
+.animate-float {
+  animation: titleFloat 4s ease-in-out infinite;
+}
+
+@keyframes gradientBG {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.bg-animate-gradient {
+  background-size: 200% 200%;
+  animation: gradientBG 15s ease infinite;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(var(--vibrant-pink), var(--vibrant-purple));
+  border-radius: 10px;
+}
