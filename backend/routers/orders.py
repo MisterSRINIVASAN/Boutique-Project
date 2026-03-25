@@ -20,15 +20,23 @@ def generate_order_id():
 @router.post("", response_model=schemas.OrderResponse)
 def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)):
     try:
+        # 1. Resolve User (Frontend might send ID or Email)
+        user_obj = db.query(models.User).filter(
+            (models.User.id == order.user_id) | (models.User.email == order.user_id)
+        ).first()
+        
+        if not user_obj:
+            raise HTTPException(status_code=404, detail=f"User {order.user_id} not found. Please log in again.")
+            
+        real_user_id = user_obj.id
         order_id = generate_order_id()
         
         # Calculate dispatch date (e.g., today + 25 days)
-        # We could fetch this from Settings table, but hardcoded 25 for now
         dispatch_dt = date.today() + timedelta(days=25)
         
         db_order = models.Order(
             id=order_id,
-            user_id=order.user_id,
+            user_id=real_user_id, # Use the resolved UUID
             total=0,
             status="Order Placed - Tailoring Started",
             dispatch_date=dispatch_dt,
