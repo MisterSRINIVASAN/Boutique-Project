@@ -19,78 +19,89 @@ def generate_order_id():
 
 @router.post("", response_model=schemas.OrderResponse)
 def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)):
-    order_id = generate_order_id()
-    
-    # Calculate dispatch date (e.g., today + 25 days)
-    # We could fetch this from Settings table, but hardcoded 25 for now
-    dispatch_dt = date.today() + timedelta(days=25)
-    
-    db_order = models.Order(
-        id=order_id,
-        user_id=order.user_id,
-        total=0,
-        status="Order Placed - Tailoring Started",
-        dispatch_date=dispatch_dt,
-        address=order.address
-    )
-    db.add(db_order)
-    
-    total_price = 0
-    # Process items
-    for item in order.items:
-        # Get product
-        product = db.query(models.Product).filter(models.Product.id == item.product_id).first()
-        if not product:
-            raise HTTPException(status_code=404, detail=f"Product {item.product_id} not found")
+    try:
+        order_id = generate_order_id()
         
-        # Get specific size measurements
-        size_obj = db.query(models.ProductSize).filter(
-            models.ProductSize.product_id == item.product_id,
-            models.ProductSize.size_label == item.size_label
-        ).first()
+        # Calculate dispatch date (e.g., today + 25 days)
+        # We could fetch this from Settings table, but hardcoded 25 for now
+        dispatch_dt = date.today() + timedelta(days=25)
         
-        if not size_obj:
-            raise HTTPException(status_code=404, detail=f"Size {item.size_label} not found for product {item.product_id}")
-            
-        if size_obj.stock < item.quantity:
-            raise HTTPException(status_code=400, detail=f"Not enough stock for {product.name} Size {item.size_label}")
-            
-        # Deduct stock
-        size_obj.stock -= item.quantity
-        
-        price = product.price * item.quantity
-        total_price += price
-        
-        db_item = models.OrderItem(
-            order_id=order_id,
-            product_id=item.product_id,
-            size_label=item.size_label,
-            chest=size_obj.chest,
-            waist=size_obj.waist,
-            hip=size_obj.hip,
-            quantity=item.quantity,
-            price=price
+        db_order = models.Order(
+            id=order_id,
+            user_id=order.user_id,
+            total=0,
+            status="Order Placed - Tailoring Started",
+            dispatch_date=dispatch_dt,
+            address=order.address
         )
-        db.add(db_item)
+        db.add(db_order)
         
-    db_order.total = total_price
-    db.commit()
-    db.refresh(db_order)
-    
-    # Fetch user for real details
-    user_obj = db.query(models.User).filter(models.User.id == order.user_id).first()
-    user_email = user_obj.email if user_obj else order.user_id
-    user_phone = user_obj.phone_number if user_obj else "Unknown"
+        total_price = 0
+        # Process items
+        for item in order.items:
+            # Get product
+            product = db.query(models.Product).filter(models.Product.id == item.product_id).first()
+            if not product:
+                raise HTTPException(status_code=404, detail=f"Product {item.product_id} not found")
+            
+            # Get specific size measurements
+            size_obj = db.query(models.ProductSize).filter(
+                models.ProductSize.product_id == item.product_id,
+                models.ProductSize.size_label == item.size_label
+            ).first()
+            
+            if not size_obj:
+                raise HTTPException(status_code=404, detail=f"Size {item.size_label} not found for product {item.product_id}")
+                
+            if size_obj.stock < item.quantity:
+                raise HTTPException(status_code=400, detail=f"Not enough stock for {product.name} Size {item.size_label}")
+                
+            # Deduct stock
+            size_obj.stock -= item.quantity
+            
+            price = product.price * item.quantity
+            total_price += price
+            
+            db_item = models.OrderItem(
+                order_id=order_id,
+                product_id=item.product_id,
+                size_label=item.size_label,
+                chest=size_obj.chest,
+                waist=size_obj.waist,
+                hip=size_obj.hip,
+                quantity=item.quantity,
+                price=price
+            )
+            db.add(db_item)
+            
+        db_order.total = total_price
+        db.commit()
+        db.refresh(db_order)
+        
+        # Fetch user for real details
+        user_obj = db.query(models.User).filter(models.User.id == order.user_id).first()
+        
+        # Trigger Professional Notifications (Email/SMS)
+        notification_service.send_order_confirmation(db, db_order, user_obj)
+        
+        return db_order
 
-    # Trigger Professional Notifications (Email/SMS)
-    notification_service.send_order_confirmation(db, db_order, user_obj)
-    
-    return db_order
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        import traceback
+        print(f"❌ [ORDER ERROR] Critical failure creating order: {str(e)}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/mine", response_model=List[schemas.OrderResponse])
 def get_my_orders(current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
-    orders = db.query(models.Order).filter(models.Order.user_id == current_user.id).all()
-    return orders
+    try:
+        orders = db.query(models.Order).filter(models.Order.user_id == current_user.id).all()
+        return orders
+    except Exception as e:
+        print(f"❌ [ORDER ERROR] Error fetching user orders: {str(e)}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @router.get("/{order_id}", response_model=schemas.OrderResponse)
 def get_order(order_id: str, db: Session = Depends(get_db)):
