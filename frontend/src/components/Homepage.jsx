@@ -19,7 +19,7 @@ export default function Homepage() {
   useEffect(() => {
     const fetchData = async () => {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
+      const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s for free-tier cold starts
       try {
         const prodRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/products`, { signal: controller.signal });
         if (!prodRes.ok) throw new Error('Failed to fetch products');
