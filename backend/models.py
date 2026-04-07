@@ -21,6 +21,8 @@ class Category(Base):
     __tablename__ = "categories"
     id = Column(String, primary_key=True, default=generate_uuid)
     name = Column(String, unique=True, index=True)
+    image_url = Column(String, nullable=True)
+    description = Column(Text, nullable=True)
     products = relationship("Product", back_populates="category_obj")
 
 class Product(Base):
@@ -68,6 +70,15 @@ class Order(Base):
     @property
     def user_phone(self):
         return self.user.phone_number if self.user else "N/A"
+
+class Favorite(Base):
+    __tablename__ = "favorites"
+    id = Column(String, primary_key=True, default=generate_uuid)
+    user_id = Column(String, ForeignKey("users.id"))
+    product_id = Column(String, ForeignKey("products.id"))
+    
+    user = relationship("User", backref="favorites")
+    product = relationship("Product")
 
 class OrderItem(Base):
     __tablename__ = "order_items"

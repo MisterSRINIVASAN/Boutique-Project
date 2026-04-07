@@ -100,7 +100,7 @@ def seed():
         
         # Use local images in a circular fashion for 100% guaranteed coverage
         img_name = local_images[i % len(local_images)]
-        img_url = f"http://localhost:8000/uploads/{img_name}"
+        img_url = f"http://127.0.0.1:8000/uploads/{img_name}"
         
         p = models.Product(
             id=prod_id,

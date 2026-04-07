@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -8,8 +8,15 @@ export default function UserLogin() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
-  const { login } = useAuth();
+  const { login, isLoggedIn, role } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      if (role === 'admin') navigate('/admin');
+      else navigate('/');
+    }
+  }, [isLoggedIn, role, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

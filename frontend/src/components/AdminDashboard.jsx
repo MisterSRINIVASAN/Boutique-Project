@@ -10,6 +10,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('inventory');
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [manageStockModal, setManageStockModal] = useState(null);
   const [lookbook, setLookbook] = useState([]);
   const [newLookbookItem, setNewLookbookItem] = useState({ title: '', description: '', image_url: '' });
   
@@ -153,16 +154,36 @@ export default function AdminDashboard() {
   const handleAddCategory = async (e) => {
     e.preventDefault();
     try {
+      let imageUrl = null;
+      if (productForm.categoryImageFile) {
+        const formData = new FormData();
+        formData.append('files', productForm.categoryImageFile);
+        const uploadRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/admin/upload`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData
+        });
+        const uploadData = await uploadRes.json();
+        imageUrl = uploadData.urls[0];
+      }
+
       const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/admin/categories`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}` 
         },
-        body: JSON.stringify({ name: newCategoryName })
+        body: JSON.stringify({ 
+          name: newCategoryName,
+          description: productForm.categoryDescription || null,
+          image_url: imageUrl
+        })
       });
       if (!res.ok) throw new Error('Failed to add category');
+      
       setNewCategoryName('');
+      setProductForm({...productForm, categoryDescription: '', categoryImageFile: null});
+      
       const catRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/admin/categories`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -243,6 +264,33 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleManageStock = (sizeId, currentStock, productName, sizeLabel) => {
+    setManageStockModal({ sizeId, currentStock, productName, sizeLabel, newStock: currentStock });
+  };
+
+  const submitStockUpdate = async () => {
+    if (!manageStockModal) return;
+    const { sizeId, newStock } = manageStockModal;
+    if (!isNaN(newStock) && newStock >= 0) {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/admin/inventory/${sizeId}`, {
+          method: 'PUT',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}` 
+          },
+          body: JSON.stringify({ stock: newStock })
+        });
+        if (res.ok) {
+          setManageStockModal(null);
+          fetchInventory();
+        } else alert("Failed to update stock");
+      } catch(e) { console.error(e) }
+    } else {
+      alert("Please enter a valid stock number.");
+    }
+  };
+
   if (loading) return <div className="p-8 text-center text-gray-500">Loading dashboard...</div>;
 
   return (
@@ -320,6 +368,45 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+
+      {/* Manage Stock Modal */}
+      {manageStockModal && (
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
+          <div className="glass-vibrant w-full max-w-sm rounded-[3rem] shadow-2xl overflow-hidden flex flex-col relative animate-slideUp border border-white/40 p-8 text-center">
+            <h3 className="text-xl font-serif font-black text-gray-900 tracking-tight mb-2">Manage Stock</h3>
+            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest leading-relaxed mb-6">
+              {manageStockModal.productName} <br/> <span className="text-purple-600">Size: {manageStockModal.sizeLabel}</span>
+            </p>
+            
+            <div className="mb-8">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">New Quantity</label>
+              <input 
+                type="number" 
+                min="0"
+                className="w-32 mx-auto text-center glass border-white/50 rounded-2xl p-4 text-2xl font-black focus:ring-2 focus:ring-purple-200 outline-none transition-all"
+                value={manageStockModal.newStock}
+                onChange={(e) => setManageStockModal({ ...manageStockModal, newStock: parseInt(e.target.value) || 0 })}
+              />
+            </div>
+            
+            <div className="flex gap-4">
+              <button 
+                onClick={() => setManageStockModal(null)}
+                className="flex-1 px-4 py-3 rounded-2xl font-black text-xs uppercase tracking-widest text-gray-500 hover:bg-gray-100 transition-all font-sans"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={submitStockUpdate}
+                className="flex-1 bg-colorful-gradient text-white px-4 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg hover:scale-105 transition-all font-sans"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Admin Header */}
       <div className="flex justify-between items-center glass-vibrant p-6 rounded-[2rem] shadow-2xl animate-fadeIn">
         <div>
@@ -411,7 +498,7 @@ export default function AdminDashboard() {
                           </span>
                         </td>
                         <td className="px-8 py-4 text-right">
-                          <button className="bg-white/60 hover:bg-white text-[10px] font-black text-gray-900 border border-white/40 px-4 py-2 rounded-xl uppercase tracking-widest transition-all hover:scale-105 shadow-sm">Manage</button>
+                          <button onClick={() => handleManageStock(item.id, item.stock, item.product?.name, item.size_label)} className="bg-white/60 hover:bg-white text-[10px] font-black text-gray-900 border border-white/40 px-4 py-2 rounded-xl uppercase tracking-widest transition-all hover:scale-105 shadow-sm">Manage</button>
                         </td>
                       </tr>
                     ))
@@ -511,34 +598,69 @@ export default function AdminDashboard() {
         <div className="space-y-8 animate-fadeIn">
           <div className="glass-vibrant p-8 rounded-[2.5rem] shadow-xl border border-white/40">
             <h3 className="text-xl font-black text-gray-900 mb-6 tracking-tight">Expand Collections</h3>
-            <form onSubmit={handleAddCategory} className="flex gap-4">
+            <form onSubmit={handleAddCategory} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <input 
                 required 
-                className="flex-1 glass border-white/50 rounded-2xl p-4 text-sm font-bold placeholder:text-gray-300 focus:ring-2 focus:ring-purple-200 outline-none transition-all" 
+                className="glass border-white/50 rounded-2xl p-4 text-sm font-bold placeholder:text-gray-300 focus:ring-2 focus:ring-purple-200 outline-none transition-all" 
                 value={newCategoryName} 
                 onChange={e => setNewCategoryName(e.target.value)} 
-                placeholder="New Category Name (e.g. Silk Gowns)"
+                placeholder="Category Name (e.g. Silk Gowns)"
               />
-              <button type="submit" className="bg-colorful-gradient text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-105 shadow-lg transition-all">Add Category</button>
+              <input 
+                className="glass border-white/50 rounded-2xl p-4 text-sm font-bold placeholder:text-gray-300 focus:ring-2 focus:ring-purple-200 outline-none transition-all" 
+                value={productForm.categoryDescription || ''} 
+                onChange={e => setProductForm({...productForm, categoryDescription: e.target.value})} 
+                placeholder="Description (Optional)"
+              />
+              <div className="glass border-white/50 rounded-2xl p-4 flex items-center justify-between">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Cover Image</p>
+                <input 
+                  type="file" 
+                  onChange={e => setProductForm({...productForm, categoryImageFile: e.target.files[0]})}
+                  className="text-[10px] font-black text-pink-600"
+                />
+              </div>
+              <button type="submit" className="md:col-span-1 lg:col-span-3 bg-colorful-gradient text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-105 shadow-lg transition-all">Add Category</button>
             </form>
           </div>
 
-          <div className="glass-vibrant rounded-[2.5rem] shadow-xl border border-white/40 overflow-hidden">
-            <div className="px-8 py-6 bg-gradient-to-r from-purple-50 to-pink-50 border-b border-white">
-              <h3 className="text-xl font-black text-gray-900 tracking-tight">Active Categories</h3>
-            </div>
-            <ul className="divide-y divide-white/20">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {categories.length === 0 ? (
-                <li className="px-8 py-12 text-center text-gray-400 font-bold uppercase tracking-widest text-xs">No collections established</li>
+                <div className="col-span-full py-12 text-center text-gray-400 font-bold uppercase tracking-widest text-xs">No collections established</div>
               ) : (
                 categories.map((cat) => (
-                  <li key={cat.id} className="px-8 py-6 flex items-center justify-between hover:bg-white/40 transition-all">
-                    <span className="text-sm font-black text-gray-800 uppercase tracking-widest">{cat.name}</span>
-                    <span className="text-[10px] text-purple-400 font-black font-mono bg-purple-50 px-3 py-1 rounded-full border border-purple-100 uppercase">SYS-ID: {cat.id}</span>
-                  </li>
+                  <div key={cat.id} className="glass-vibrant rounded-[2rem] shadow-xl overflow-hidden group border border-white/40">
+                    <div className="aspect-square overflow-hidden relative bg-gray-100">
+                       {cat.image_url ? (
+                           <img src={cat.image_url} alt={cat.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                       ) : (
+                           <div className="w-full h-full bg-gradient-to-tr from-pink-100 to-purple-200 flex items-center justify-center text-white font-bold opacity-80">No Cover</div>
+                       )}
+                       <button 
+                        onClick={async () => {
+                            if(window.confirm('Are you sure you want to delete this Category?')) {
+                                try {
+                                  await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/admin/categories/${cat.id}`, {
+                                    method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
+                                  });
+                                  const catRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/admin/categories`, {
+                                    headers: { 'Authorization': `Bearer ${token}` }
+                                  });
+                                  setCategories(await catRes.json());
+                                } catch(e) { console.error(e) }
+                            }
+                        }}
+                        className="absolute top-4 right-4 bg-red-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-black opacity-0 group-hover:opacity-100 transition-all shadow-lg"
+                       >✕</button>
+                    </div>
+                    <div className="p-5 bg-white/40 backdrop-blur-md">
+                       <h4 className="font-serif font-black text-gray-900 truncate">{cat.name}</h4>
+                       {cat.description && <p className="text-[10px] text-gray-500 mt-1 font-medium truncate">{cat.description}</p>}
+                       <span className="text-[10px] text-purple-400 font-black font-mono mt-3 inline-block">ID: {cat.id}</span>
+                    </div>
+                  </div>
                 ))
               )}
-            </ul>
           </div>
         </div>
       )}

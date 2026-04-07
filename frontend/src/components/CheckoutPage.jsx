@@ -41,13 +41,27 @@ export default function CheckoutPage() {
     }));
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/orders`, {
+      // Ensure we have a valid absolute URL
+      let baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+      if (!baseUrl.startsWith('http')) {
+        baseUrl = `https://${baseUrl}`;
+      }
+      baseUrl = baseUrl.replace(/\/$/, "");
+      
+      const targetUrl = `${baseUrl}/api/orders`;
+      console.log("Attempting checkout at:", targetUrl);
+      
+      const res = await fetch(targetUrl, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ user_id: user.email, address: address, items: items })
+        body: JSON.stringify({ 
+          user_id: user.id || user.email,
+          address: address, 
+          items: items 
+        })
       });
       
       if (!res.ok) {

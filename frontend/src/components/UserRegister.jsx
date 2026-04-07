@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export default function UserRegister() {
   const [formData, setFormData] = useState({
@@ -12,6 +13,14 @@ export default function UserRegister() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { isLoggedIn, role } = useAuth();
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      if (role === 'admin') navigate('/admin');
+      else navigate('/');
+    }
+  }, [isLoggedIn, role, navigate]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.id]: e.target.value });

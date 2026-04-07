@@ -30,11 +30,19 @@ export function CartProvider({ children }) {
             : item
         );
       }
+      let firstImage = null;
+      if (product.images) {
+        let imgs = product.images;
+        if (typeof imgs === 'string') {
+          try { imgs = JSON.parse(imgs); } catch(e) { imgs = []; }
+        }
+        firstImage = (imgs && imgs.length > 0) ? imgs[0] : null;
+      }
       return [...prev, {
         product_id: product.id,
         name: product.name,
         price: product.price,
-        image: product.images ? product.images[0] : null,
+        image: firstImage,
         size_label,
         quantity,
         checked: true

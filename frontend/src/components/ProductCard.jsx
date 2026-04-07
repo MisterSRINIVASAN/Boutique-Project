@@ -1,10 +1,23 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { useFavorites } from '../context/FavoritesContext';
 
-export default function ProductCard({ product }) {
+const ProductCard = React.memo(function ProductCard({ product, onAdded }) {
     const [isHovered, setIsHovered] = useState(false);
+    
+    const getFirstImage = () => {
+        let imgs = product.images;
+        if (typeof imgs === 'string') {
+            try { imgs = JSON.parse(imgs); } catch(e) { imgs = []; }
+        }
+        return (imgs && imgs.length > 0) ? imgs[0] : 'https://via.placeholder.com/400x533/E8E8E8/A0A0A0?text=Attire+By+Sush';
+    };
+    const imageUrl = getFirstImage();
+
     const { addToCart } = useCart();
+    const { toggleFavorite, isFavorited } = useFavorites();
+    const favorited = isFavorited(product.id);
     
     // Determine badges
     const isNew = true; // Mock: everything is "JUST IN" for now
@@ -19,8 +32,9 @@ export default function ProductCard({ product }) {
             <Link to={`/product/${product.id}`} className="block">
                 <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-gray-100">
                     <img
-                        src={product.images?.[0] || 'https://via.placeholder.com/400x533/E8E8E8/A0A0A0?text=Attire+By+Sush'}
+                        src={imageUrl}
                         alt={product.name}
+                        loading="lazy"
                         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                     
@@ -38,8 +52,17 @@ export default function ProductCard({ product }) {
                         )}
                     </div>
 
-                    <button className="absolute top-3 right-3 text-gray-400 hover:text-red-500 transition-colors">
-                        <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    <button 
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            toggleFavorite(product.id);
+                        }}
+                        className={`absolute top-3 right-3 transition-all duration-300 transform hover:scale-110 active:scale-95 z-20 p-2 rounded-full backdrop-blur-md ${favorited ? 'bg-white/90 text-red-500 shadow-lg' : 'bg-black/10 text-white/70 hover:text-red-500 hover:bg-white/50'}`}
+                    >
+                        <svg className={`w-5 h-5 ${favorited ? 'fill-current' : 'fill-none'}`} stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        </svg>
                     </button>
 
                     {/* Size Tray on Hover */}
@@ -84,4 +107,6 @@ export default function ProductCard({ product }) {
             </div>
         </div>
     );
-}
+});
+
+export default ProductCard;

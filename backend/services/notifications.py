@@ -1,5 +1,12 @@
+import os
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 import models
 from datetime import date
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def send_order_confirmation(db, order, user):
     """
@@ -39,15 +46,48 @@ def send_order_confirmation(db, order, user):
     </div>
     """
 
-    # 2. Generate Professional SMS
+    # 2. Send the Actual Email via SMTP
+    # Grab credentials from environment
+    smtp_server = os.getenv("SMTP_SERVER")
+    smtp_port = os.getenv("SMTP_PORT", 587)
+    smtp_user = os.getenv("SMTP_USERNAME")
+    smtp_pass = os.getenv("SMTP_PASSWORD")
+    sender_email = os.getenv("SENDER_EMAIL", smtp_user)
+    
+    email_status = "Skipped (No SMTP Configuration)"
+    if smtp_server and smtp_user and smtp_pass:
+        try:
+            msg = MIMEMultipart("alternative")
+            msg['Subject'] = email_subject
+            msg['From'] = sender_email
+            msg['To'] = user_email
+            
+            part = MIMEText(email_html, "html")
+            msg.attach(part)
+            
+            server = smtplib.SMTP(smtp_server, int(smtp_port))
+            server.set_debuglevel(0)
+            server.starttls()
+            server.login(smtp_user, smtp_pass)
+            server.sendmail(sender_email, user_email, msg.as_string())
+            server.quit()
+            
+            email_status = "SENT SUCCESSFULLY via SMTP"
+        except Exception as e:
+            print(f"❌ [NOTIFIER] Failed to send real email: {e}")
+            email_status = f"FAILED: {str(e)}"
+    else:
+        print("⚠️ [NOTIFIER] SMTP config missing. Skipping real email dispatch.")
+
+    # 3. Generate Professional SMS (Mock)
     sms_content = f"Attire By Sush: Hi {user.name}, your order {order_id} (₹{total_amount:,.0f}) is confirmed! Dispatch expected by {order.dispatch_date.strftime('%d %b')}. Shop more: sush.boutique/track"
 
-    # 3. Persist Logs
+    # 4. Persist Logs in Database
     email_notif = models.NotificationLog(
         order_id=order_id,
         type="EMAIL",
         recipient=user_email,
-        content=f"SUBJECT: {email_subject}\nINVOICE HTML: {email_html[:100]}..."
+        content=f"STATUS: {email_status}\nSUBJECT: {email_subject}\nINVOICE HTML: {email_html[:100]}..."
     )
     sms_notif = models.NotificationLog(
         order_id=order_id,
@@ -58,9 +98,8 @@ def send_order_confirmation(db, order, user):
     db.add_all([email_notif, sms_notif])
     db.commit()
 
-    # Log to Console (Mocking the Actual Send)
     print(f"\n[BOOTIQUE NOTIFIER] Triggering for Order {order_id}")
-    print(f"--- EMAIL (Mock) Sent to {user_email}")
+    print(f"--- EMAIL: {email_status} -> {user_email}")
     print(f"--- SMS (Mock) Sent to {user_phone}")
     print(f"--- Logged to database for Admin panel tracking.\n")
 

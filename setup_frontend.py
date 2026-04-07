@@ -1,8 +1,8 @@
 import subprocess
 import os
 
-os.makedirs(r"c:\Users\SrinI\OneDrive\Desktop\PROJECT\frontend", exist_ok=True)
-os.chdir(r"c:\Users\SrinI\OneDrive\Desktop\PROJECT\frontend")
+os.makedirs(r"c:\Users\SrinI\OneDrive\Desktop\Boutique_Project\frontend", exist_ok=True)
+os.chdir(r"c:\Users\SrinI\OneDrive\Desktop\Boutique_Project\frontend")
 
 commands = [
     "npx -y create-vite@latest . --template react",

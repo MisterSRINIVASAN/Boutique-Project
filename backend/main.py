@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
 import models
@@ -8,6 +9,9 @@ from database import engine
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Attire By Sush API", description="Boutique Clothing Platform Backend")
+
+# Compression Middleware
+app.add_middleware(GZipMiddleware, minimum_size=500)
 
 # CORS Configuration
 origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
@@ -27,12 +31,13 @@ if not os.path.exists(uploads_dir):
 
 app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
 
-from routers import admin, products, orders, auth
+from routers import admin, products, orders, auth, favorites
 
 app.include_router(auth.router)
 app.include_router(admin.router)
 app.include_router(products.router)
 app.include_router(orders.router)
+app.include_router(favorites.router)
 
 @app.get("/")
 def read_root():

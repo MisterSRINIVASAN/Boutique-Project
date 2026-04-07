@@ -73,24 +73,28 @@ export default function UserOrders() {
 
                 <div className="space-y-8">
                    <div className="glass p-8 rounded-[2rem] border-white/60">
-                      <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">Delivery Instruction</h4>
+                      <h4 className="text-[10px] font-black text-gray-700 uppercase tracking-[0.2em] mb-4">Delivery Instruction</h4>
                       <p className="text-sm font-bold text-gray-800 leading-relaxed">{selectedOrder.address}</p>
                    </div>
 
                    <div className="space-y-4">
-                      <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] ml-2">Your Items</h4>
+                      <h4 className="text-[10px] font-black text-gray-700 uppercase tracking-[0.2em] ml-2">Your Items</h4>
                       {selectedOrder.items.map((item, idx) => (
                         <div key={idx} className="glass p-6 rounded-[2rem] flex flex-col md:flex-row gap-6 border-white/60 group hover:bg-white/40 transition-all">
                            <div className="h-24 w-20 bg-gray-100 rounded-2xl overflow-hidden flex-shrink-0 border border-white/80">
-                              <div className="h-full w-full flex items-center justify-center text-indigo-300">
-                                <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14V6a2 2 0 00-2-2H6a2 2 0 00-2 2v10z" /></svg>
-                              </div>
+                              {item.product && item.product.images && item.product.images.length > 0 ? (
+                                <img src={typeof item.product.images === 'string' ? JSON.parse(item.product.images)[0] : item.product.images[0]} alt={item.product.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <div className="h-full w-full flex items-center justify-center text-indigo-300 bg-gray-50">
+                                  <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14V6a2 2 0 00-2-2H6a2 2 0 00-2 2v10z" /></svg>
+                                </div>
+                              )}
                            </div>
                            <div className="flex-1 space-y-3">
                               <div className="flex justify-between items-start">
                                  <div>
-                                   <p className="text-xs font-black text-indigo-600 uppercase tracking-widest">Product ID: {item.product_id}</p>
-                                   <p className="text-sm font-bold text-gray-900">Size: {item.size_label} (Qty: {item.quantity})</p>
+                                   <p className="text-sm font-bold text-gray-900">{item.product ? item.product.name : `Product ID: ${item.product_id}`}</p>
+                                   <p className="text-xs text-gray-600 mt-0.5">Size: {item.size_label} | Qty: {item.quantity}</p>
                                  </div>
                                  <p className="text-sm font-black text-gray-900">₹{item.price.toLocaleString()}</p>
                               </div>
@@ -171,13 +175,16 @@ export default function UserOrders() {
                       {order.items?.map((item, idx) => (
                         <div key={idx} className="flex gap-4 items-center">
                           <div className="h-16 w-12 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border border-gray-100">
-                             {/* Image placeholder for simplicity in history */}
-                             <div className="h-full w-full flex items-center justify-center text-indigo-200">
-                               <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14V6a2 2 0 00-2-2H6a2 2 0 00-2 2v10z" /></svg>
-                             </div>
+                             {item.product && item.product.images && item.product.images.length > 0 ? (
+                               <img src={typeof item.product.images === 'string' ? JSON.parse(item.product.images)[0] : item.product.images[0]} alt={item.product.name} className="w-full h-full object-cover" />
+                             ) : (
+                               <div className="h-full w-full flex items-center justify-center text-indigo-200">
+                                 <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14V6a2 2 0 00-2-2H6a2 2 0 00-2 2v10z" /></svg>
+                               </div>
+                             )}
                           </div>
                           <div className="flex-1">
-                            <p className="text-sm font-bold text-gray-800">Product ID: {item.product_id}</p>
+                            <p className="text-sm font-bold text-gray-800">{item.product ? item.product.name : `Product ID: ${item.product_id}`}</p>
                             <p className="text-xs text-gray-500">Size: {item.size_label} | Qty: {item.quantity}</p>
                           </div>
                         </div>

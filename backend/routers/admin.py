@@ -60,11 +60,44 @@ def get_categories(db: Session = Depends(get_db)):
 
 @router.post("/categories", response_model=schemas.CategoryResponse)
 def create_category(category: schemas.CategoryCreate, db: Session = Depends(get_db)):
-    db_category = models.Category(name=category.name)
+    db_category = models.Category(
+        name=category.name,
+        image_url=category.image_url,
+        description=category.description
+    )
     db.add(db_category)
     db.commit()
     db.refresh(db_category)
     return db_category
+
+@router.put("/categories/{category_id}", response_model=schemas.CategoryResponse)
+def update_category(category_id: str, category: schemas.CategoryCreate, db: Session = Depends(get_db)):
+    db_category = db.query(models.Category).filter(models.Category.id == category_id).first()
+    if not db_category:
+        raise HTTPException(status_code=404, detail="Category not found")
+    
+    db_category.name = category.name
+    db_category.image_url = category.image_url
+    db_category.description = category.description
+    
+    db.commit()
+    db.refresh(db_category)
+    return db_category
+
+@router.delete("/categories/{category_id}")
+def delete_category(category_id: str, db: Session = Depends(get_db)):
+    db_category = db.query(models.Category).filter(models.Category.id == category_id).first()
+    if not db_category:
+        raise HTTPException(status_code=404, detail="Category not found")
+    
+    # Nullify category for related products so we don't delete them
+    products = db.query(models.Product).filter(models.Product.category_id == category_id).all()
+    for p in products:
+        p.category_id = None
+        
+    db.delete(db_category)
+    db.commit()
+    return {"message": "Category deleted"}
 
 from sqlalchemy.orm import joinedload
 
@@ -73,6 +106,19 @@ def get_inventory(db: Session = Depends(get_db)):
     # Fetch all inventory items with their related product details
     inventory = db.query(models.ProductSize).options(joinedload(models.ProductSize.product)).all()
     return inventory
+
+from pydantic import BaseModel
+class StockUpdate(BaseModel):
+    stock: int
+
+@router.put("/inventory/{size_id}")
+def update_stock(size_id: str, payload: StockUpdate, db: Session = Depends(get_db)):
+    size_item = db.query(models.ProductSize).filter(models.ProductSize.id == size_id).first()
+    if not size_item:
+        raise HTTPException(status_code=404, detail="Size item not found")
+    size_item.stock = payload.stock
+    db.commit()
+    return {"message": "Stock updated", "new_stock": size_item.stock}
 
 @router.get("/orders", response_model=List[schemas.OrderResponse])
 def get_all_orders(db: Session = Depends(get_db)):

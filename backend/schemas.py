@@ -4,6 +4,8 @@ from datetime import date
 
 class CategoryBase(BaseModel):
     name: str
+    image_url: Optional[str] = None
+    description: Optional[str] = None
 
 class CategoryCreate(CategoryBase):
     pass
@@ -30,6 +32,8 @@ class ProductSizeResponse(ProductSizeBase):
     class Config:
         from_attributes = True
 
+from typing import List, Optional, Any
+
 class ProductBase(BaseModel):
     id: str # allow manual ID assignment for products
     name: str
@@ -37,7 +41,7 @@ class ProductBase(BaseModel):
     category_id: str
     base_description: str
     price: float
-    images: List[str]
+    images: Any
 
 class ProductCreate(ProductBase):
     sizes: List[ProductSizeCreate]
@@ -74,6 +78,7 @@ class OrderItemResponse(BaseModel):
     hip: float
     quantity: int
     price: float
+    product: Optional[ProductBase] = None
     class Config:
         from_attributes = True
 
@@ -130,5 +135,13 @@ class LookbookItemCreate(LookbookItemBase):
 
 class LookbookItemResponse(LookbookItemBase):
     id: str
+    class Config:
+        from_attributes = True
+
+class FavoriteResponse(BaseModel):
+    id: str
+    user_id: str
+    product_id: str
+    product: ProductResponse
     class Config:
         from_attributes = True
