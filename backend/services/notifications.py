@@ -104,3 +104,21 @@ def send_order_confirmation(db, order, user):
     print(f"--- Logged to database for Admin panel tracking.\n")
 
     return True
+
+from database import SessionLocal
+
+def send_order_confirmation_background(order_id: str, user_id: str):
+    """
+    Wrapper for sending notifications asynchronously in a background task
+    with an independent database session.
+    """
+    db = SessionLocal()
+    try:
+        order = db.query(models.Order).filter(models.Order.id == order_id).first()
+        user = db.query(models.User).filter(models.User.id == user_id).first()
+        if order and user:
+            send_order_confirmation(db, order, user)
+    except Exception as e:
+        print(f"❌ [BACKGROUND TASK ERROR] Failed to send email for order {order_id}: {str(e)}")
+    finally:
+        db.close()

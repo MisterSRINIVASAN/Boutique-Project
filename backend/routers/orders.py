@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List
 from datetime import date, timedelta
@@ -18,7 +18,7 @@ def generate_order_id():
     return f"ORD-{today}-{short_uuid}"
 
 @router.post("", response_model=schemas.OrderResponse)
-def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)):
+def create_order(order: schemas.OrderCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     try:
         # 1. Resolve User (Frontend might send ID or Email)
         user_obj = db.query(models.User).filter(
@@ -89,8 +89,11 @@ def create_order(order: schemas.OrderCreate, db: Session = Depends(get_db)):
         # Fetch user for real details
         user_obj = db.query(models.User).filter(models.User.id == order.user_id).first()
         
-        # Trigger Professional Notifications (Email/SMS)
-        notification_service.send_order_confirmation(db, db_order, user_obj)
+        # Trigger Professional Notifications (Email/SMS) in Background
+        background_tasks.add_task(
+            notification_service.send_order_confirmation_background,
+            order_id, real_user_id
+        )
         
         return db_order
 
