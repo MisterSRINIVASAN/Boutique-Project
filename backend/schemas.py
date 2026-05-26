@@ -38,7 +38,7 @@ class ProductBase(BaseModel):
     id: str # allow manual ID assignment for products
     name: str
     fabric: str
-    category_id: str
+    category_id: Optional[str] = None
     base_description: str
     price: float
     images: Any
@@ -49,6 +49,12 @@ class ProductCreate(ProductBase):
 class ProductResponse(ProductBase):
     sizes: List[ProductSizeResponse]
     category_obj: Optional[CategoryResponse] = None
+    class Config:
+        from_attributes = True
+
+class PaginatedProductResponse(BaseModel):
+    total: int
+    items: List[ProductResponse]
     class Config:
         from_attributes = True
 

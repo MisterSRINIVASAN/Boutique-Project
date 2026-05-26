@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 
 const fallbackLookbook = [
-  { image_url: `${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/uploads/vibrant_anarkali.png`, title: 'Royal Zari Anarkali', description: 'Hand-woven silk with traditional zari work.' },
-  { image_url: `${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/uploads/electric_blue_lehanga.png`, title: 'Mirror Work Lehanga', description: 'Electric blue georgette with artisan mirror accents.' },
-  { image_url: `${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/uploads/neon_pink_kurti.png`, title: 'Neon Pink Designer Kurti', description: 'Modern silhouette meets traditional craft.' },
-  { image_url: `${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/uploads/emerald_gown.png`, title: 'Emerald Party Gown', description: 'Rich velvet drape for evening elegance.' },
-  { image_url: `${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/uploads/lavender_sharara.png`, title: 'Lavender Sharara Set', description: 'Delicate organic cotton with intricate threadwork.' },
-  { image_url: `${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/uploads/maroon_velvet.png`, title: 'Maroon Velvet Ensemble', description: 'Luxurious heavy velvet for a festive statement.' },
-  { image_url: `${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/uploads/pastel_mint.png`, title: 'Pastel Mint Dhoti Set', description: 'Contemporary twist on a classic ethnic silhouette.' },
-  { image_url: `${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/uploads/gold_suit.png`, title: 'Gold Embroidered Suit', description: 'Tussar silk with opulent golden embroidery.' },
+  { image_url: 'https://images.unsplash.com/photo-1583391733958-d259c1b3f9ff?auto=format&fit=crop&q=80&w=1000', title: 'Royal Zari Anarkali', description: 'Hand-woven silk with traditional zari work.' },
+  { image_url: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&q=80&w=1000', title: 'Mirror Work Lehanga', description: 'Electric blue georgette with artisan mirror accents.' },
+  { image_url: 'https://images.unsplash.com/photo-1596455607563-ad6193f76b17?auto=format&fit=crop&q=80&w=1000', title: 'Neon Pink Designer Kurti', description: 'Modern silhouette meets traditional craft.' },
+  { image_url: 'https://images.unsplash.com/photo-1518049363533-31422798c943?auto=format&fit=crop&q=80&w=1000', title: 'Emerald Party Gown', description: 'Rich velvet drape for evening elegance.' },
+  { image_url: 'https://images.unsplash.com/photo-1621213328299-4d9609c2a713?auto=format&fit=crop&q=80&w=1000', title: 'Lavender Sharara Set', description: 'Delicate organic cotton with intricate threadwork.' },
+  { image_url: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&q=80&w=1000', title: 'Maroon Velvet Ensemble', description: 'Luxurious heavy velvet for a festive statement.' },
+  { image_url: 'https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&q=80&w=1000', title: 'Pastel Mint Dhoti Set', description: 'Contemporary twist on a classic ethnic silhouette.' },
+  { image_url: 'https://images.unsplash.com/photo-1589156206699-bc21e38c8a7d?auto=format&fit=crop&q=80&w=1000', title: 'Gold Embroidered Suit', description: 'Tussar silk with opulent golden embroidery.' },
 ];
 
 export default function Lookbook({ onClose }) {
@@ -63,7 +63,7 @@ export default function Lookbook({ onClose }) {
         </div>
 
         <div className="mt-40 border-t border-white/10 pt-20">
-          <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.5em]">Attire By Sush • Madurai • Worldwide</p>
+          <p className="text-white/40 text-[10px] font-black uppercase tracking-[0.5em]">Attire Destination • Madurai • Worldwide</p>
         </div>
       </div>
     </div>

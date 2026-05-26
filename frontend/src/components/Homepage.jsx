@@ -4,10 +4,12 @@ import Lookbook from './Lookbook';
 
 export default function Homepage() {
   const [products, setProducts] = useState([]);
+  const [totalProducts, setTotalProducts] = useState(0);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('All');
   const [sortBy, setSortBy] = useState('popular');
+  const [page, setPage] = useState(0);
   const [toast, setToast] = useState(null);
   const [showLookbook, setShowLookbook] = useState(false);
 
@@ -16,28 +18,58 @@ export default function Homepage() {
     if (el) el.scrollIntoView({ behavior: 'smooth' });
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s for free-tier cold starts
-      try {
-        const prodRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/products`, { signal: controller.signal });
-        if (!prodRes.ok) throw new Error('Failed to fetch products');
-        setProducts(await prodRes.json());
+  const fetchProducts = async (currentPage, isLoadMore = false) => {
+    const activeCatId = activeCategory === 'All' ? null : categories.find(c => c.name === activeCategory)?.id;
+    let url = `${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/products?limit=100&skip=${currentPage * 100}&sort_by=${sortBy}`;
+    if (activeCatId) url += `&category_id=${activeCatId}`;
 
-        const catRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/products/categories`, { signal: controller.signal });
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('Failed to fetch products');
+      const data = await res.json();
+      
+      if (isLoadMore) {
+        setProducts(prev => [...prev, ...data.items]);
+      } else {
+        setProducts(data.items);
+      }
+      setTotalProducts(data.total);
+    } catch (err) {
+      console.error("API Fetch Error:", err);
+      showToast("Failed to fetch products.");
+    }
+  };
+
+  useEffect(() => {
+    const init = async () => {
+      setLoading(true);
+      try {
+        const catRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/products/categories`);
         if (!catRes.ok) throw new Error('Failed to fetch categories');
-        setCategories(await catRes.json());
+        const catData = await catRes.json();
+        setCategories(catData);
       } catch (err) {
         console.error("API Fetch Error:", err);
-        showToast("Backend connection failed or timed out.");
       } finally {
-        clearTimeout(timeoutId);
         setLoading(false);
       }
     };
-    fetchData();
+    init();
   }, []);
+
+  useEffect(() => {
+    // We only want to fetch products after categories are loaded if activeCategory is not 'All'
+    if (categories.length > 0 || activeCategory === 'All') {
+      setPage(0);
+      fetchProducts(0, false);
+    }
+  }, [activeCategory, sortBy, categories]);
+
+  useEffect(() => {
+    if (page > 0) {
+      fetchProducts(page, true);
+    }
+  }, [page]);
 
   const showToast = (message) => {
     setToast(message);
@@ -45,18 +77,7 @@ export default function Homepage() {
   };
 
   const categoryList = ['All', ...categories.map(c => c.name)];
-
-  const sortedAndFilteredProducts = (() => {
-    let result = activeCategory === 'All' 
-      ? [...products] 
-      : products.filter(p => p.category_obj?.name === activeCategory);
-    
-    if (sortBy === 'price-asc') result.sort((a, b) => a.price - b.price);
-    else if (sortBy === 'price-desc') result.sort((a, b) => b.price - a.price);
-    else if (sortBy === 'new') result.reverse(); // Mock new arrivals
-    
-    return result;
-  })();
+  const sortedAndFilteredProducts = products; // Sorting and filtering are now handled by backend
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -150,7 +171,7 @@ export default function Homepage() {
           </div>
           
           <div className="flex items-center gap-2 text-gray-400 border-t pt-8 w-full justify-center">
-            <span className="text-xs uppercase tracking-widest font-bold">{sortedAndFilteredProducts.length} items</span>
+            <span className="text-xs uppercase tracking-widest font-bold">Showing {products.length} of {totalProducts} items</span>
             <span className="text-gray-200">|</span>
             <select 
               value={sortBy}
@@ -173,11 +194,23 @@ export default function Homepage() {
       ) : sortedAndFilteredProducts.length === 0 ? (
         <div className="text-center py-20 text-gray-500 font-medium">No results found for "{activeCategory}"</div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-12">
-          {sortedAndFilteredProducts.map(product => (
-            <ProductCard key={product.id} product={product} onAdded={() => showToast(`Added ${product.name} to Bag`)} />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-12">
+            {sortedAndFilteredProducts.map(product => (
+              <ProductCard key={product.id} product={product} onAdded={() => showToast(`Added ${product.name} to Bag`)} />
+            ))}
+          </div>
+          {products.length < totalProducts && (
+            <div className="flex justify-center mt-12">
+              <button 
+                onClick={() => setPage(p => p + 1)}
+                className="border-2 border-gray-200 text-gray-600 hover:border-gray-900 hover:text-gray-900 px-8 py-3 rounded-xl font-bold uppercase tracking-widest transition-all text-xs"
+              >
+                Load More
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {/* Boutique SEO / Trust Section */}

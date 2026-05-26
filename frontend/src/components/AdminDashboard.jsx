@@ -323,7 +323,7 @@ export default function AdminDashboard() {
                          <h4 className="text-[10px] font-black text-purple-600 uppercase tracking-widest mb-4">Customer Details</h4>
                          <p className="text-sm font-black text-gray-800">{selectedOrder.user_name || 'Guest'}</p>
                          <p className="text-xs text-gray-500 font-medium mt-1">{selectedOrder.user_id}</p>
-                         <p className="text-xs font-black text-purple-400 mt-2">📱 {selectedOrder.user_phone || 'Not provided'}</p>
+                         <p className="text-xs font-black text-purple-600 mt-2">WhatsApp: {selectedOrder.user_phone || 'Not provided'}</p>
                       </div>
                       <div className="glass p-6 rounded-3xl">
                          <h4 className="text-[10px] font-black text-purple-600 uppercase tracking-widest mb-4">Shipping Destination</h4>

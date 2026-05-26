@@ -133,7 +133,7 @@ export default function UserOrders() {
             <svg className="w-10 h-10 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
           </div>
           <h2 className="text-2xl font-serif font-bold text-gray-900">No orders yet</h2>
-          <p className="text-gray-500 max-w-sm mx-auto">You haven't placed any orders with Attire By Sush yet. Start exploring our latest коллекции!</p>
+          <p className="text-gray-500 max-w-sm mx-auto">You haven't placed any orders with Attire Destination yet. Start exploring our latest коллекции!</p>
           <Link to="/" className="inline-block bg-indigo-600 text-white px-10 py-4 rounded-full font-bold shadow-lg hover:bg-indigo-700 transition-all hover:scale-105 shadow-indigo-100">
             Start Shopping
           </Link>

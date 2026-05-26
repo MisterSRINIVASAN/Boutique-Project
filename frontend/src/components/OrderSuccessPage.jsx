@@ -18,7 +18,7 @@ export default function OrderSuccessPage() {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8"><path d="M20 6L9 17L4 12"/></svg>
           </div>
           <h2 className="text-3xl font-serif font-bold text-white mb-2">Order Confirmed</h2>
-          <p className="text-green-100 font-medium">Thank you for shopping with Attire By Sush</p>
+          <p className="text-green-100 font-medium">Thank you for shopping with Attire Destination</p>
         </div>
         
         <div className="px-8 py-8">

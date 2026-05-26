@@ -107,7 +107,7 @@ def seed():
             name=data["name"],
             fabric=data["fabric"],
             category_id=cat.id,
-            base_description=f"Exquisite {data['name']} crafted from {data['fabric']}. A hallmark of the Attire By Sush premium collection.",
+            base_description=f"Exquisite {data['name']} crafted from {data['fabric']}. A hallmark of the Attire Destination premium collection.",
             price=data["price"],
             images=[img_url]
         )

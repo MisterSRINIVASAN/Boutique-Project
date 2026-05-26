@@ -30,7 +30,7 @@ class Product(Base):
     id = Column(String, primary_key=True) # e.g., P101
     name = Column(String)
     fabric = Column(String)
-    category_id = Column(String, ForeignKey("categories.id")) # Link to dynamic category
+    category_id = Column(String, ForeignKey("categories.id"), index=True) # Link to dynamic category
     base_description = Column(Text)
     price = Column(Float)
     images = Column(JSON) # List of image URLs
@@ -41,7 +41,7 @@ class Product(Base):
 class ProductSize(Base):
     __tablename__ = "product_sizes"
     id = Column(String, primary_key=True, default=generate_uuid)
-    product_id = Column(String, ForeignKey("products.id"))
+    product_id = Column(String, ForeignKey("products.id"), index=True)
     size_label = Column(String) # e.g., '38'
     chest = Column(Float)
     waist = Column(Float)
@@ -54,7 +54,7 @@ class ProductSize(Base):
 class Order(Base):
     __tablename__ = "orders"
     id = Column(String, primary_key=True) # e.g., ORD-20260324-XXXX
-    user_id = Column(String, ForeignKey("users.id"))
+    user_id = Column(String, ForeignKey("users.id"), index=True)
     total = Column(Float)
     status = Column(String, default="Order Placed")
     dispatch_date = Column(Date)
@@ -83,8 +83,8 @@ class Favorite(Base):
 class OrderItem(Base):
     __tablename__ = "order_items"
     id = Column(String, primary_key=True, default=generate_uuid)
-    order_id = Column(String, ForeignKey("orders.id"))
-    product_id = Column(String, ForeignKey("products.id"))
+    order_id = Column(String, ForeignKey("orders.id"), index=True)
+    product_id = Column(String, ForeignKey("products.id"), index=True)
     size_label = Column(String)
     chest = Column(Float)
     waist = Column(Float)

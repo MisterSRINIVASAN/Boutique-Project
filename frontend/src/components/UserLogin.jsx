@@ -103,7 +103,7 @@ export default function UserLogin() {
 
         <div className="mt-8 text-center pt-6 border-t border-gray-100">
           <p className="text-sm text-gray-500 font-medium">
-            New to Attire By Sush?{' '}
+            New to Attire Destination?{' '}
             <Link to="/register" className="text-indigo-600 font-bold hover:text-indigo-500 transition-colors">
               Create an account
             </Link>

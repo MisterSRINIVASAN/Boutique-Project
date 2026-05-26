@@ -1,5 +1,6 @@
 import os
 import smtplib
+import requests
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import models
@@ -24,10 +25,10 @@ def send_order_confirmation(db, order, user):
     dispatch_date = order.dispatch_date.strftime("%B %d, %Y")
 
     # 1. Generate Rich HTML Email (Invoice Concept)
-    email_subject = f"Order Confirmed - {order_id} | Attire By Sush"
+    email_subject = f"Order Confirmed - {order_id} | Attire Destination"
     email_html = f"""
     <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 40px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05);">
-        <h1 style="color: #9333ea; text-align: center; font-size: 28px; font-weight: 900; letter-spacing: -1px;">ATTIRE BY SUSH</h1>
+        <h1 style="color: #9333ea; text-align: center; font-size: 28px; font-weight: 900; letter-spacing: -1px;">ATTIRE DESTINATION</h1>
         <p style="text-align: center; color: #666; font-size: 10px; text-transform: uppercase; letter-spacing: 2px;">Boutique Order Confirmation</p>
         <hr style="border: none; border-top: 1px dashed #eee; margin: 30px 0;">
         <h2 style="font-size: 18px; margin-bottom: 5px;">Thank you for your order, {user_name}!</h2>
@@ -79,8 +80,61 @@ def send_order_confirmation(db, order, user):
     else:
         print("⚠️ [NOTIFIER] SMTP config missing. Skipping real email dispatch.")
 
-    # 3. Generate Professional SMS (Mock)
-    sms_content = f"Attire By Sush: Hi {user.name}, your order {order_id} (₹{total_amount:,.0f}) is confirmed! Dispatch expected by {order.dispatch_date.strftime('%d %b')}. Shop more: sush.boutique/track"
+    # 3. Send WhatsApp Notification (Meta Cloud API)
+    whatsapp_token = os.getenv("WHATSAPP_TOKEN")
+    whatsapp_phone_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID")
+    whatsapp_template = os.getenv("WHATSAPP_TEMPLATE_NAME")
+    
+    whatsapp_status = "Skipped (No WhatsApp Configuration)"
+    
+    if whatsapp_token and whatsapp_phone_id and whatsapp_template:
+        try:
+            # Clean up phone number (remove spaces, ensures country code is prefix only)
+            clean_phone = user.phone_number.replace(" ", "").replace("+", "").replace("-", "")
+            if len(clean_phone) == 10:
+                clean_phone = f"91{clean_phone}" # Default to India if 10 digits
+            
+            url = f"https://graph.facebook.com/v18.0/{whatsapp_phone_id}/messages"
+            headers = {
+                "Authorization": f"Bearer {whatsapp_token}",
+                "Content-Type": "application/json"
+            }
+            
+            # Using Template Message as required for Business-Initiated alerts
+            payload = {
+                "messaging_product": "whatsapp",
+                "recipient_type": "individual",
+                "to": clean_phone,
+                "type": "template",
+                "template": {
+                    "name": whatsapp_template,
+                    "language": { "code": "en_US" },
+                    "components": [
+                        {
+                            "type": "body",
+                            "parameters": [
+                                { "type": "text", "text": user_name },
+                                { "type": "text", "text": order_id },
+                                { "type": "text", "text": f"INR {total_amount:,.0f}" },
+                                { "type": "text", "text": order.dispatch_date.strftime('%d %b %Y') }
+                            ]
+                        }
+                    ]
+                }
+            }
+            
+            resp = requests.post(url, headers=headers, json=payload, timeout=10)
+            if resp.status_code in [200, 201]:
+                whatsapp_status = "SENT SUCCESSFULLY"
+            else:
+                whatsapp_status = f"FAILED: HTTP {resp.status_code}"
+                print(f"❌ [NOTIFIER] WhatsApp API Error: {resp.text}")
+                
+        except Exception as e:
+            print(f"❌ [NOTIFIER] Failed to send WhatsApp: {e}")
+            whatsapp_status = f"EXCEPTION: {str(e)}"
+    else:
+        print("⚠️ [NOTIFIER] WhatsApp config missing. Skipping API dispatch.")
 
     # 4. Persist Logs in Database
     email_notif = models.NotificationLog(
@@ -89,18 +143,18 @@ def send_order_confirmation(db, order, user):
         recipient=user_email,
         content=f"STATUS: {email_status}\nSUBJECT: {email_subject}\nINVOICE HTML: {email_html[:100]}..."
     )
-    sms_notif = models.NotificationLog(
+    whatsapp_notif = models.NotificationLog(
         order_id=order_id,
-        type="SMS",
+        type="WHATSAPP",
         recipient=user_phone,
-        content=sms_content
+        content=f"STATUS: {whatsapp_status}\nTEMPLATE: {whatsapp_template}\nTO: {user_phone}"
     )
-    db.add_all([email_notif, sms_notif])
+    db.add_all([email_notif, whatsapp_notif])
     db.commit()
 
     print(f"\n[BOOTIQUE NOTIFIER] Triggering for Order {order_id}")
     print(f"--- EMAIL: {email_status} -> {user_email}")
-    print(f"--- SMS (Mock) Sent to {user_phone}")
+    print(f"--- WHATSAPP: {whatsapp_status} -> {user_phone}")
     print(f"--- Logged to database for Admin panel tracking.\n")
 
     return True

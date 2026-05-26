@@ -57,7 +57,7 @@ export default function UserRegister() {
       <div className="max-w-xl w-full space-y-10 bg-white p-10 rounded-3xl shadow-xl border border-gray-100">
         <div className="text-center">
           <h2 className="text-4xl font-serif font-bold text-gray-900 tracking-tight">Create Account</h2>
-          <p className="mt-3 text-gray-500 font-medium tracking-wide">Join Attire By Sush for a premium boutique experience</p>
+          <p className="mt-3 text-gray-500 font-medium tracking-wide">Join Attire Destination for a premium boutique experience</p>
         </div>
 
         <form className="mt-10 space-y-6" onSubmit={handleSubmit}>
@@ -91,7 +91,7 @@ export default function UserRegister() {
             </div>
 
             <div className="sm:col-span-1">
-              <label htmlFor="phone_number" className="block text-sm font-bold text-gray-700 ml-1">Phone Number</label>
+              <label htmlFor="phone_number" className="block text-sm font-bold text-gray-700 ml-1">WhatsApp Number</label>
               <input
                 id="phone_number"
                 type="tel"

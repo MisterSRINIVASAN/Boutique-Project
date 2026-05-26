@@ -5,10 +5,29 @@ import ProductCard from './ProductCard';
 export default function CategoryPage() {
     const { id } = useParams();
     const [products, setProducts] = useState([]);
+    const [totalProducts, setTotalProducts] = useState(0);
     const [category, setCategory] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [page, setPage] = useState(0);
 
     const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+
+    const fetchProducts = async (currentPage, isLoadMore = false) => {
+        try {
+            const prodRes = await fetch(`${API_URL}/api/products?category_id=${id}&limit=100&skip=${currentPage * 100}`);
+            if (prodRes.ok) {
+                const data = await prodRes.json();
+                if (isLoadMore) {
+                    setProducts(prev => [...prev, ...data.items]);
+                } else {
+                    setProducts(data.items);
+                }
+                setTotalProducts(data.total);
+            }
+        } catch (error) {
+            console.error("Failed to fetch products", error);
+        }
+    };
 
     useEffect(() => {
         const fetchCategoryData = async () => {
@@ -23,13 +42,6 @@ export default function CategoryPage() {
                         setCategory(currentCat);
                     }
                 }
-
-                // Fetch products filtered by category
-                const prodRes = await fetch(`${API_URL}/api/products?category_id=${id}`);
-                if (prodRes.ok) {
-                    const data = await prodRes.json();
-                    setProducts(data);
-                }
             } catch (error) {
                 console.error("Failed to fetch category data", error);
             } finally {
@@ -39,6 +51,17 @@ export default function CategoryPage() {
 
         fetchCategoryData();
     }, [id, API_URL]);
+
+    useEffect(() => {
+        setPage(0);
+        fetchProducts(0, false);
+    }, [id]);
+
+    useEffect(() => {
+        if (page > 0) {
+            fetchProducts(page, true);
+        }
+    }, [page]);
 
     if (loading) {
         return <div className="text-center py-32 text-gray-400 font-medium">Loading collection...</div>;
@@ -84,7 +107,7 @@ export default function CategoryPage() {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
                 <div className="flex justify-between items-center mb-10">
                     <p className="text-gray-500 font-bold uppercase tracking-widest text-sm">
-                        {products.length} {products.length === 1 ? 'Design' : 'Designs'}
+                        Showing {products.length} of {totalProducts} {totalProducts === 1 ? 'Design' : 'Designs'}
                     </p>
                 </div>
 
@@ -94,13 +117,25 @@ export default function CategoryPage() {
                         <p className="text-gray-400 mt-2">Check back soon.</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-12">
-                        {products.map(product => (
-                            <div key={product.id} className="animate-fade-in">
-                                <ProductCard product={product} />
+                    <>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-12">
+                            {products.map(product => (
+                                <div key={product.id} className="animate-fade-in">
+                                    <ProductCard product={product} />
+                                </div>
+                            ))}
+                        </div>
+                        {products.length < totalProducts && (
+                            <div className="flex justify-center mt-12">
+                                <button 
+                                    onClick={() => setPage(p => p + 1)}
+                                    className="border-2 border-gray-200 text-gray-600 hover:border-gray-900 hover:text-gray-900 px-8 py-3 rounded-xl font-bold uppercase tracking-widest transition-all text-xs"
+                                >
+                                    Load More
+                                </button>
                             </div>
-                        ))}
-                    </div>
+                        )}
+                    </>
                 )}
             </div>
         </div>

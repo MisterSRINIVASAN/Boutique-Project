@@ -25,7 +25,7 @@ function TopNav() {
   return (
     <nav className="fixed top-2 md:top-4 inset-x-2 md:inset-x-4 h-14 md:h-16 glass-vibrant rounded-xl md:rounded-2xl z-50 flex items-center justify-between px-3 md:px-6 shadow-2xl transition-all hover:bg-white/90">
       <Link to="/" className="text-lg md:text-2xl font-serif text-gray-900 font-extrabold tracking-tight group truncate max-w-[150px] md:max-w-none">
-        <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-600 via-purple-600 to-orange-500 group-hover:from-orange-500 group-hover:via-pink-600 group-hover:to-purple-600 transition-all duration-1000 bg-[length:200%_auto] animate-gradient">Attire By Sush</span>
+        <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-600 via-purple-600 to-orange-500 group-hover:from-orange-500 group-hover:via-pink-600 group-hover:to-purple-600 transition-all duration-1000 bg-[length:200%_auto] animate-gradient">Attire Destination</span>
       </Link>
       <div className="flex items-center gap-2 md:gap-6">
         {isLoggedIn ? (

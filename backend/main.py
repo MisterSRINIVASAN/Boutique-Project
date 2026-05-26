@@ -5,10 +5,12 @@ from fastapi.staticfiles import StaticFiles
 import os
 import models
 from database import engine
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.inmemory import InMemoryBackend
 
 models.Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Attire By Sush API", description="Boutique Clothing Platform Backend")
+app = FastAPI(title="Attire Destination API", description="Boutique Clothing Platform Backend")
 
 # Compression Middleware
 app.add_middleware(GZipMiddleware, minimum_size=500)
@@ -39,6 +41,10 @@ app.include_router(products.router)
 app.include_router(orders.router)
 app.include_router(favorites.router)
 
+@app.on_event("startup")
+async def startup():
+    FastAPICache.init(InMemoryBackend())
+
 @app.get("/")
 def read_root():
-    return {"message": "Welcome to Attire By Sush API"}
+    return {"message": "Welcome to Attire Destination API"}
