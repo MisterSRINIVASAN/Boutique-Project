@@ -8,3 +8,5 @@ cloudinary
 python-dotenv
 psycopg2-binary
 requests
+fastapi-cache2
+jinja2
