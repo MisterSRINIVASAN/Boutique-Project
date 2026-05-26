@@ -42,7 +42,7 @@ def send_order_confirmation(db, order, user):
         </div>
 
         <p style="font-size: 12px; color: #999; text-align: center; margin-top: 40px;">
-            Questions? Reply to this email or visit our <a href="http://localhost:5173" style="color: #9333ea; text-decoration: none; font-weight: bold;">Boutique Store</a>.
+            Questions? Reply to this email or visit our <a href="{os.getenv('FRONTEND_URL', 'http://localhost:5173')}" style="color: #9333ea; text-decoration: none; font-weight: bold;">Boutique Store</a>.
         </p>
     </div>
     """
