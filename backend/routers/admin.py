@@ -99,7 +99,7 @@ def delete_category(category_id: str, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "Category deleted"}
 
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 
 @router.get("/inventory")
 def get_inventory(db: Session = Depends(get_db)):
@@ -122,7 +122,13 @@ def update_stock(size_id: str, payload: StockUpdate, db: Session = Depends(get_d
 
 @router.get("/orders", response_model=List[schemas.OrderResponse])
 def get_all_orders(db: Session = Depends(get_db)):
-    return db.query(models.Order).order_by(models.Order.id.desc()).all()
+    # OrderResponse reads user_name/user_phone (Order.user), items, and each
+    # item's product. Without eager loading that is 2 + 1-per-item queries for
+    # every order in the list.
+    return db.query(models.Order).options(
+        joinedload(models.Order.user),
+        selectinload(models.Order.items).joinedload(models.OrderItem.product),
+    ).order_by(models.Order.id.desc()).all()
 
 @router.post("/orders/{order_id}/dispatch", response_model=schemas.OrderResponse)
 def mark_order_dispatched(order_id: str, db: Session = Depends(get_db)):

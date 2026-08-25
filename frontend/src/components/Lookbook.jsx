@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { apiFetch, keys, sizedImage } from '../lib/api';
 
 const fallbackLookbook = [
   { image_url: 'https://images.unsplash.com/photo-1583391733958-d259c1b3f9ff?auto=format&fit=crop&q=80&w=1000', title: 'Royal Zari Anarkali', description: 'Hand-woven silk with traditional zari work.' },
@@ -12,24 +14,17 @@ const fallbackLookbook = [
 ];
 
 export default function Lookbook({ onClose }) {
-  const [lookbookImages, setLookbookImages] = useState([]);
+  const { data } = useQuery({
+    queryKey: keys.lookbook(),
+    queryFn: () => apiFetch('/api/products/lookbook/all'),
+    staleTime: 5 * 60_000,
+    // Render the curated fallback instantly instead of an empty grid while
+    // the request is in flight.
+    placeholderData: fallbackLookbook,
+  });
 
-  useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/products/lookbook/all`)
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.length > 0) {
-          setLookbookImages(data);
-        } else {
-          setLookbookImages(fallbackLookbook);
-        }
-      })
-      .catch(err => {
-        console.error("DEBUG - Lookbook fetch failed:", err);
-        setLookbookImages(fallbackLookbook);
-      });
-  }, []);
-  
+  const lookbookImages = (data && data.length > 0) ? data : fallbackLookbook;
+
   return (
     <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl animate-fadeIn overflow-y-auto pb-20">
       <button 
@@ -48,10 +43,14 @@ export default function Lookbook({ onClose }) {
           {lookbookImages.map((img, i) => (
             <div key={i} className={`group animate-slideUp`}>
               <div className="relative overflow-hidden rounded-[2rem] shadow-2xl aspect-[4/5] bg-gray-900 mb-8 transform transition-transform duration-700 group-hover:scale-[1.02]">
-                <img 
-                  src={img.image_url} 
-                  alt={img.title} 
-                  className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity duration-700" 
+                <img
+                  src={sizedImage(img.image_url, 640)}
+                  alt={img.title}
+                  width="640"
+                  height="800"
+                  loading={i < 2 ? 'eager' : 'lazy'}
+                  decoding="async"
+                  className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity duration-700"
                 />
                 <div className="absolute inset-x-6 bottom-6 p-8 glass text-left rounded-3xl translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
                   <h3 className="text-xl font-serif font-black mb-2 text-white">{img.title}</h3>

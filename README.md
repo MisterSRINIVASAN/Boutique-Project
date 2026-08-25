@@ -21,8 +21,8 @@
 ## 🚀 Special Features
 
 - 🎨 **Vibrant UI & Glassmorphism Aesthetics**: Built meticulously with Tailwind CSS to offer a visually appealing experience with smooth gradients, blurs, and hover micro-animations.
-- ⚡ **High-Speed Caching & Optimized Database**: Implemented `Write-Ahead Logging (WAL)` in SQLite, alongside `fastapi-cache2` in-memory database caching, ensuring that thousands of products load instantly.
-- 📈 **Massive Scalability & Pagination**: Backend-driven pagination and dynamic "Load More" frontend functionality gracefully handles thousands of products without freezing the browser, capping initial loads at 100 items for maximum speed.
+- ⚡ **High-Speed Caching**: `fastapi-cache2` in-memory response caching and HTTP `stale-while-revalidate` headers on the server, TanStack Query on the client, plus SQLite `Write-Ahead Logging` for local development.
+- 📈 **Massive Scalability & Pagination**: Backend-driven pagination with a "Load More" grid handles thousands of products without freezing the browser, keeping the first page small (24 items) so the storefront paints quickly.
 - 🛍️ **Interactive Lookbook**: Dedicated interactive lookbook component for displaying fashion models and outfit inspirations.
 - 🔒 **Role-Based Authentication**: Secure JWT-based authentication for both regular Users and Admin roles.
 - 🛒 **Advanced Cart & Favorites Management**: Real-time context-based cart management, favorite product toggling, and robust size/stock tracking per item.
@@ -70,12 +70,31 @@ Boutique_Project/
 
 ---
 
-## 🏎️ Performance Optimizations (Scaling)
-To ensure the application runs smoothly even with large traffic, we have integrated:
-1. **Database WAL Mode**: `PRAGMA journal_mode=WAL` prevents database locking during heavy concurrent reads/writes.
-2. **Database Indices**: Heavily queried tables (like `categories` and `orders`) have indexed Foreign Keys.
-3. **API Level Caching**: Added in-memory `@cache` decorators to product/category fetch routes, dropping response times from ~100ms down to `<5ms`.
-4. **Backend Pagination**: Shifted sorting and filtering entirely to the server-side, utilizing precise `skip` and `limit` SQL constraints to ensure the frontend only renders exactly what it needs.
+## 🏎️ Performance Optimizations
+
+### Backend
+1. **Working API cache**: `@cache` routes use a custom key builder (`cache_utils.py`). The default builder stringifies every argument including the injected SQLAlchemy `Session`, whose `object at 0x...` repr changes per request — so the cache wrote a new entry on every call and never read one back. Cached endpoints also return validated, JSON-safe primitives, so a hit skips the ORM entirely.
+2. **No N+1 queries**: `/api/admin/orders`, `/api/orders/mine` and `/api/favorites` eager-load their nested relationships. Previously each order lazy-loaded its user, its items, and a product per item.
+3. **Lean grid payload**: the product list returns only the fields a card renders (`ProductListItemResponse`), not full descriptions, measurements and a nested category object.
+4. **Stable pagination**: every sort order ends on `product.id`. Without a total ordering, Postgres could repeat or skip rows across `LIMIT/OFFSET` pages.
+5. **Cheap counts + price index**: pagination totals use a dedicated `COUNT` instead of re-running the eager-loaded query; `products.price` is indexed for price sorts.
+6. **HTTP caching**: public catalogue responses send `Cache-Control: public, max-age=60, stale-while-revalidate=300`; authenticated routes send `no-store`.
+7. **Connection pooling**: Postgres uses `pool_pre_ping` and connection recycling so idle-reaped connections don't stall the first request after a quiet period.
+8. **Faster cold starts**: `create_all()` is gated behind `RUN_MIGRATIONS=1` instead of reflecting every table on each boot. SQLite keeps it on by default.
+9. **Database WAL Mode** (SQLite): `PRAGMA journal_mode=WAL` prevents locking during concurrent reads/writes.
+
+### Frontend
+1. **TanStack Query**: shared cache, request deduplication and background revalidation. Navigating Home → Product → Home no longer refetches the catalogue.
+2. **Hover prefetch**: hovering a product card warms its detail-page query, so the click usually renders from cache.
+3. **No duplicate requests**: the homepage previously fired `/api/products` twice per visit, because its fetch effect depended on the categories state it also awaited. Categories and products now load in parallel.
+4. **Font chain broken**: fonts are `<link>`-ed from `index.html` with preconnects rather than `@import`-ed from CSS, which delayed discovery until the stylesheet had parsed.
+5. **Eager landing route**: `Homepage` is bundled with the entry chunk; the other twelve routes stay lazy.
+6. **Right-sized images**: images are requested at the size their slot actually uses, the first row loads eagerly with `fetchpriority="high"`, and the rest lazily. Intrinsic `width`/`height` prevent layout shift.
+7. **Client-side collection links**: the homepage collection tiles used raw `<a href>`, which reloaded the entire document instead of routing.
+8. **Composited background**: the ambient blur blobs are promoted to their own compositor layers, so a full-screen blur is rasterized once instead of repainting on every scroll and animation frame. Motion respects `prefers-reduced-motion`.
+9. **Stable context values**: the Auth/Cart/Favorites providers memoise their values, so a change in one no longer re-renders every product card.
+10. **Build splitting**: React and TanStack Query sit in separate long-cached vendor chunks; `/assets/*` is served `immutable` for a year.
+11. **Smaller first page**: the grid loads 24 products and pages in more on demand, rather than rendering 100 up front.
 
 ---
 
@@ -103,9 +122,15 @@ python -m venv venv
 # Mac/Linux: source venv/bin/activate
 
 pip install -r requirements.txt
-pip install fastapi-cache2 # Ensure caching is installed
 uvicorn main:app --reload
 ```
+
+**Deploying against Postgres**: table creation is skipped by default to keep cold
+starts fast. Boot once with `RUN_MIGRATIONS=1` against a fresh database (and
+after any change to `models.py`), then unset it. The `products.price` index is
+new — `create_all()` will not add an index to a table that already exists, so
+run `CREATE INDEX IF NOT EXISTS ix_products_price ON products (price);` once on
+an existing database.
 
 ### 3. Manual Frontend Setup
 ```bash

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 from typing import List
 from datetime import date, timedelta
 import uuid
@@ -108,7 +108,10 @@ def create_order(order: schemas.OrderCreate, background_tasks: BackgroundTasks, 
 @router.get("/mine", response_model=List[schemas.OrderResponse])
 def get_my_orders(current_user: models.User = Depends(auth.get_current_user), db: Session = Depends(get_db)):
     try:
-        orders = db.query(models.Order).filter(models.Order.user_id == current_user.id).all()
+        orders = db.query(models.Order).options(
+            joinedload(models.Order.user),
+            selectinload(models.Order.items).joinedload(models.OrderItem.product),
+        ).filter(models.Order.user_id == current_user.id).order_by(models.Order.id.desc()).all()
         return orders
     except Exception as e:
         print(f"❌ [ORDER ERROR] Error fetching user orders: {str(e)}")

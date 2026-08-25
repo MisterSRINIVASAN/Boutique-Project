@@ -1,51 +1,37 @@
 import React, { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
+import { apiFetch, keys } from '../lib/api';
 
 export default function UserOrders() {
-  const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const { token, isLoggedIn, logout } = useAuth();
+  const { isLoggedIn, logout } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isLoggedIn) {
+    if (!isLoggedIn) navigate('/login');
+  }, [isLoggedIn, navigate]);
+
+  const { data: orders = [], isLoading, error } = useQuery({
+    queryKey: keys.myOrders(),
+    queryFn: () => apiFetch('/api/orders/mine', { auth: true }),
+    enabled: isLoggedIn,
+    staleTime: 30_000,
+  });
+
+  useEffect(() => {
+    if (error?.status === 401) {
+      logout();
       navigate('/login');
-      return;
     }
+  }, [error, logout, navigate]);
 
-    const fetchOrders = async () => {
-      try {
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/orders/mine`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!res.ok) {
-          if (res.status === 401) {
-            logout();
-            navigate('/login');
-            return;
-          }
-          throw new Error('Failed to fetch orders');
-        }
-        const data = await res.json();
-        setOrders(data);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
+  if (isLoading) return <div className="max-w-7xl mx-auto px-4 py-20 text-center text-gray-500 font-medium">Loading your orders...</div>;
 
-    fetchOrders();
-  }, [token, isLoggedIn, navigate, logout]);
-
-  if (loading) return <div className="max-w-7xl mx-auto px-4 py-20 text-center text-gray-500 font-medium">Loading your orders...</div>;
-  
   if (error) return (
     <div className="max-w-7xl mx-auto px-4 py-20 text-center">
-      <p className="text-red-500 font-bold mb-4">{error}</p>
+      <p className="text-red-500 font-bold mb-4">We couldn't load your orders.</p>
       <button onClick={() => window.location.reload()} className="text-indigo-600 font-bold hover:underline">Try Again</button>
     </div>
   );

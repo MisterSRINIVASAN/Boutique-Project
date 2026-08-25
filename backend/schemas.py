@@ -52,9 +52,37 @@ class ProductResponse(ProductBase):
     class Config:
         from_attributes = True
 
+# --- Grid/list payloads ---
+# The product grid only renders name, fabric, price, the first image and each
+# size's stock. Serving the full ProductResponse there ships measurements,
+# descriptions and a nested category object that no card ever reads.
+
+class ProductSizeBriefResponse(BaseModel):
+    id: str
+    size_label: str
+    stock: int
+    class Config:
+        from_attributes = True
+
+class ProductListItemResponse(BaseModel):
+    id: str
+    name: str
+    fabric: str
+    price: float
+    images: Any
+    sizes: List[ProductSizeBriefResponse]
+    class Config:
+        from_attributes = True
+
 class PaginatedProductResponse(BaseModel):
     total: int
     items: List[ProductResponse]
+    class Config:
+        from_attributes = True
+
+class PaginatedProductListResponse(BaseModel):
+    total: int
+    items: List[ProductListItemResponse]
     class Config:
         from_attributes = True
 
@@ -148,6 +176,7 @@ class FavoriteResponse(BaseModel):
     id: str
     user_id: str
     product_id: str
-    product: ProductResponse
+    # The favorites list renders ProductCard, which needs only the grid fields.
+    product: ProductListItemResponse
     class Config:
         from_attributes = True

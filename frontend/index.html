@@ -4,6 +4,24 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Attire Destination</title>
+    <meta name="description" content="Handcrafted boutique fashion from Madurai. Precision tailoring, shipped globally." />
+
+    <!--
+      Fonts are linked here rather than @import-ed from index.css: an @import
+      is only discovered after the stylesheet downloads and parses, adding a
+      serial round trip before any text can paint.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300..900&family=Playfair+Display:wght@400..900&display=swap"
+    />
+
+    <!-- Warm the connection to the API and the image hosts before the JS asks for them. -->
+    <link rel="preconnect" href="https://images.unsplash.com" crossorigin />
+    <link rel="preconnect" href="https://images.pexels.com" crossorigin />
+    <link rel="dns-prefetch" href="https://res.cloudinary.com" />
   </head>
   <body>
     <div id="root"></div>

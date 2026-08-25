@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 from typing import List
 
 import models, schemas
@@ -10,7 +10,11 @@ router = APIRouter(prefix="/api/favorites", tags=["Favorites"])
 
 @router.get("", response_model=List[schemas.FavoriteResponse])
 def get_favorites(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    return db.query(models.Favorite).filter(models.Favorite.user_id == current_user.id).all()
+    # This runs on every app load (the nav badge), so it must not lazy-load a
+    # product plus its sizes per favorite.
+    return db.query(models.Favorite).options(
+        joinedload(models.Favorite.product).selectinload(models.Product.sizes)
+    ).filter(models.Favorite.user_id == current_user.id).all()
 
 @router.post("/toggle/{product_id}")
 def toggle_favorite(product_id: str, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):

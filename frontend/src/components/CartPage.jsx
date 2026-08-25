@@ -1,6 +1,7 @@
 import React from 'react';
 import { useCart } from '../context/CartContext';
 import { Link, useNavigate } from 'react-router-dom';
+import { PLACEHOLDER_IMG } from '../lib/api';
 
 export default function CartPage() {
   const { cartItems, removeFromCart, updateQuantity, getCartTotal, toggleCheck, setAllChecked } = useCart();
@@ -54,7 +55,7 @@ export default function CartPage() {
                 </div>
 
                 <div className="shrink-0 w-24 h-32 sm:w-32 sm:h-40 rounded-xl overflow-hidden border border-gray-100 bg-gray-50 shadow-sm relative">
-                  <img src={item.image || 'https://via.placeholder.com/200x300'} alt={item.name} className="w-full h-full object-cover"/>
+                  <img src={item.image || PLACEHOLDER_IMG} alt={item.name} className="w-full h-full object-cover"/>
                   {!item.checked && <div className="absolute inset-0 bg-white/40 backdrop-blur-[1px]"></div>}
                 </div>
                 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { PLACEHOLDER_IMG } from '../lib/api';
 
 export default function CheckoutPage() {
   const { cartItems, getCartTotal } = useCart();
@@ -185,7 +186,7 @@ export default function CheckoutPage() {
               {selectedItems.map(item => (
                 <li key={item.product_id+item.size_label} className="flex gap-4">
                   <div className="h-20 w-16 shrink-0 rounded-xl overflow-hidden border border-gray-800">
-                    <img src={item.image || 'https://via.placeholder.com/100'} alt="" className="h-full w-full object-cover" />
+                    <img src={item.image || PLACEHOLDER_IMG} alt="" className="h-full w-full object-cover" />
                   </div>
                   <div className="flex-1 flex flex-col justify-center">
                     <h3 className="text-sm font-bold line-clamp-1">{item.name}</h3>

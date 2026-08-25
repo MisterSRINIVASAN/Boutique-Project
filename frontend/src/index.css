@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap');
+/* Fonts are linked from index.html -- an @import here would delay their
+   discovery until this stylesheet has downloaded and parsed. */
 
 @tailwind base;
 @tailwind components;
@@ -53,6 +54,32 @@ body {
   backdrop-filter: blur(15px);
   border: 1px solid rgba(255, 255, 255, 0.3);
   box-shadow: 0 10px 40px rgba(121, 40, 202, 0.15);
+}
+
+/*
+  Ambient background blobs.
+
+  Each is a full-screen element with a 100-180px blur. Left alone, the browser
+  re-rasterizes that blur on every scroll frame, and the one carrying
+  `animate-pulse` repaints it 60 times a second. Promoting each blob to its own
+  compositor layer means the blur is rasterized once; scrolling and the opacity
+  animation then run entirely on the compositor. Visual output is unchanged.
+*/
+.ambient-blob {
+  transform: translateZ(0);
+  will-change: transform, opacity;
+  contain: layout paint style;
+  backface-visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient-blob,
+  .animate-pulse,
+  .animate-bounce,
+  .animate-gradient,
+  .animate-float {
+    animation: none !important;
+  }
 }
 
 /* Animations */
