@@ -4,7 +4,11 @@ import { CartProvider, useCart } from './context/CartContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { FavoritesProvider, useFavorites } from './context/FavoritesContext';
 
-const Homepage = lazy(() => import('./components/Homepage'));
+// Homepage is the landing route for nearly all traffic. Lazy-loading it forces
+// a guaranteed waterfall on first visit -- bundle, then render App, then fetch
+// the chunk, then fetch its data. Everything else stays split.
+import Homepage from './components/Homepage';
+
 const ProductPage = lazy(() => import('./components/ProductPage'));
 const CategoryPage = lazy(() => import('./components/CategoryPage'));
 const AdminLogin = lazy(() => import('./components/AdminLogin'));
@@ -92,10 +96,10 @@ function App() {
           <div className="min-h-screen font-sans text-[#1A1A1A] selection:bg-pink-100 selection:text-pink-900 overflow-x-hidden">
             <TopNav />
             {/* Ambient Background Elements - Totally Colorful */}
-            <div className="fixed -top-[10%] -left-[10%] w-[50%] h-[50%] bg-pink-200/40 blur-[150px] rounded-full -z-10 pointer-events-none animate-pulse"></div>
-            <div className="fixed top-[20%] right-[0%] w-[40%] h-[40%] bg-purple-200/30 blur-[120px] rounded-full -z-10 pointer-events-none"></div>
-            <div className="fixed -bottom-[10%] -right-[10%] w-[60%] h-[60%] bg-orange-100/40 blur-[180px] rounded-full -z-10 pointer-events-none"></div>
-            <div className="fixed bottom-[10%] left-[10%] w-[30%] h-[30%] bg-blue-100/20 blur-[100px] rounded-full -z-10 pointer-events-none"></div>
+            <div className="ambient-blob fixed -top-[10%] -left-[10%] w-[50%] h-[50%] bg-pink-200/40 blur-[150px] rounded-full -z-10 pointer-events-none animate-pulse"></div>
+            <div className="ambient-blob fixed top-[20%] right-[0%] w-[40%] h-[40%] bg-purple-200/30 blur-[120px] rounded-full -z-10 pointer-events-none"></div>
+            <div className="ambient-blob fixed -bottom-[10%] -right-[10%] w-[60%] h-[60%] bg-orange-100/40 blur-[180px] rounded-full -z-10 pointer-events-none"></div>
+            <div className="ambient-blob fixed bottom-[10%] left-[10%] w-[30%] h-[30%] bg-blue-100/20 blur-[100px] rounded-full -z-10 pointer-events-none"></div>
 
             <div className="pt-28 pb-20">
               <Suspense fallback={

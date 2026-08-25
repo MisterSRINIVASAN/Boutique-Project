@@ -1,44 +1,42 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useCart } from '../context/CartContext';
 import SizeSelector from './SizeSelector';
+import { fetchProduct, keys, parseImages, sizedImage, PLACEHOLDER_IMG } from '../lib/api';
 
 export default function ProductPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addToCart } = useCart();
-  
-  const [product, setProduct] = useState(null);
-  const [loading, setLoading] = useState(true);
+
   const [selectedSize, setSelectedSize] = useState(null);
   const [adding, setAdding] = useState(false);
   const [activeImage, setActiveImage] = useState(null);
 
-  useEffect(() => {
-    const fetchProduct = async () => {
-      try {
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/products/${id}`);
-        if (!res.ok) throw new Error('Failed to fetch');
-        const data = await res.json();
-        let dataImages = data.images || [];
-        if (typeof dataImages === 'string') {
-            try { dataImages = JSON.parse(dataImages); } catch(e) { dataImages = []; }
-        }
-        data.images = dataImages;
-        setProduct(data);
-        if (dataImages && dataImages.length > 0) {
-          setActiveImage(dataImages[0]);
-        }
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProduct();
-  }, [id]);
+  // Router reuses this component across /product/:id changes, so per-product
+  // selections must be cleared or product B renders product A's thumbnail and
+  // a size B may not even stock. Resetting during render (rather than in an
+  // effect) avoids painting one frame of the previous product's state.
+  const [renderedId, setRenderedId] = useState(id);
+  if (renderedId !== id) {
+    setRenderedId(id);
+    setActiveImage(null);
+    setSelectedSize(null);
+  }
 
-  if (loading) return <div className="text-center py-20 text-gray-500">Loading product details...</div>;
+  // ProductCard prefetches this key on hover, so arriving from the grid
+  // usually resolves from cache with no request at all.
+  const { data: product, isLoading } = useQuery({
+    queryKey: keys.product(id),
+    queryFn: () => fetchProduct(id),
+    staleTime: 60_000,
+  });
+
+  const images = useMemo(() => parseImages(product?.images), [product]);
+  const mainImage = activeImage ?? images[0] ?? null;
+
+  if (isLoading) return <div className="text-center py-20 text-gray-500">Loading product details...</div>;
   if (!product) return <div className="text-center py-20 text-xl font-serif text-gray-900">Product not found</div>;
 
   const handleAddToCart = (shouldRedirect = false) => {
@@ -59,21 +57,29 @@ export default function ProductPage() {
         {/* Images */}
         <div className="flex flex-col-reverse lg:flex-row gap-4 mb-10 lg:mb-0">
           <div className="flex lg:flex-col gap-3 overflow-x-auto lg:overflow-y-auto lg:w-24 shrink-0">
-            {product.images && product.images.map((img, idx) => (
-              <img 
-                key={idx} 
-                src={img} 
-                alt="" 
+            {images.map((img, idx) => (
+              <img
+                key={idx}
+                src={sizedImage(img, 160)}
+                alt={`${product.name} view ${idx + 1}`}
+                width="80"
+                height="112"
+                loading="lazy"
+                decoding="async"
                 onClick={() => setActiveImage(img)}
-                className={`w-20 h-28 object-cover rounded-md cursor-pointer border-2 transition-all 
-                  ${activeImage === img ? 'border-lavender shadow-md scale-105' : 'border-transparent hover:border-lavender/50'}`}
+                className={`w-20 h-28 object-cover rounded-md cursor-pointer border-2 transition-all
+                  ${mainImage === img ? 'border-lavender shadow-md scale-105' : 'border-transparent hover:border-lavender/50'}`}
               />
             ))}
           </div>
           <div className="w-full aspect-[3/4] rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 shadow-sm relative group">
-            <img 
-              src={activeImage || 'https://via.placeholder.com/600x800/E8E8E8/A0A0A0?text=No+Image'} 
-              alt={product.name} 
+            <img
+              src={mainImage ? sizedImage(mainImage, 800) : PLACEHOLDER_IMG}
+              alt={product.name}
+              width="800"
+              height="1066"
+              fetchpriority="high"
+              decoding="async"
               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
             />
             {(product.category_obj?.name || product.category) && (

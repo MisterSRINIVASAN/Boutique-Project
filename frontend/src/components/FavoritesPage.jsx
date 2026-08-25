@@ -1,27 +1,19 @@
 import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useFavorites } from '../context/FavoritesContext';
 import ProductCard from './ProductCard';
 import { Link } from 'react-router-dom';
+import { fetchCategories, keys, sizedImage } from '../lib/api';
 
 export default function FavoritesPage() {
     const { favorites, favoritesCount } = useFavorites();
-    const [categories, setCategories] = React.useState([]);
 
-    React.useEffect(() => {
-        const fetchCats = async () => {
-            try {
-                const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
-                const res = await fetch(`${API_URL}/api/products/categories`);
-                if (res.ok) {
-                    const data = await res.json();
-                    setCategories(data);
-                }
-            } catch (err) {
-                console.error("Failed to fetch categories", err);
-            }
-        };
-        fetchCats();
-    }, []);
+    // Same cache entry the nav and homepage use -- free on warm navigation.
+    const { data: categories = [] } = useQuery({
+        queryKey: keys.categories(),
+        queryFn: fetchCategories,
+        staleTime: 5 * 60_000,
+    });
 
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 min-h-[60vh]">
@@ -62,9 +54,11 @@ export default function FavoritesPage() {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-12">
-                    {favorites.map((fav) => (
+                    {/* An optimistic toggle can briefly hold an entry whose
+                        product has not come back from the server yet. */}
+                    {favorites.filter(fav => fav.product).map((fav, i) => (
                         <div key={fav.id} className="animate-fade-in">
-                            <ProductCard product={fav.product} />
+                            <ProductCard product={fav.product} index={i} />
                         </div>
                     ))}
                 </div>
@@ -82,7 +76,15 @@ export default function FavoritesPage() {
                                 className="group relative rounded-2xl overflow-hidden aspect-square bg-gray-100 shadow-sm hover:shadow-xl transition-all duration-500"
                             >
                                 {cat.image_url ? (
-                                    <img src={cat.image_url} alt={cat.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                                    <img
+                                        src={sizedImage(cat.image_url, 400)}
+                                        alt={cat.name}
+                                        width="400"
+                                        height="400"
+                                        loading="lazy"
+                                        decoding="async"
+                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                    />
                                 ) : (
                                     <div className="w-full h-full bg-gradient-to-tr from-pink-100 to-purple-200"></div>
                                 )}

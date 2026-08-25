@@ -1,32 +1,47 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useCart } from '../context/CartContext';
 import { useFavorites } from '../context/FavoritesContext';
+import { firstImage, fetchProduct, keys } from '../lib/api';
 
-const ProductCard = React.memo(function ProductCard({ product, onAdded }) {
+const ProductCard = React.memo(function ProductCard({ product, onAdded, index = 99 }) {
     const [isHovered, setIsHovered] = useState(false);
-    
-    const getFirstImage = () => {
-        let imgs = product.images;
-        if (typeof imgs === 'string') {
-            try { imgs = JSON.parse(imgs); } catch(e) { imgs = []; }
-        }
-        return (imgs && imgs.length > 0) ? imgs[0] : 'https://via.placeholder.com/400x533/E8E8E8/A0A0A0?text=Attire+By+Sush';
-    };
-    const imageUrl = getFirstImage();
+    const queryClient = useQueryClient();
 
     const { addToCart } = useCart();
     const { toggleFavorite, isFavorited } = useFavorites();
+
+    const productId = product?.id;
+
+    const handleMouseEnter = useCallback(() => {
+        setIsHovered(true);
+        if (!productId) return;
+        // Warm the detail page while the pointer is still travelling to the click.
+        queryClient.prefetchQuery({
+            queryKey: keys.product(productId),
+            queryFn: () => fetchProduct(productId),
+            staleTime: 60_000,
+        });
+    }, [queryClient, productId]);
+
+    // Favorites can hold an optimistic entry whose product has not loaded yet.
+    if (!product) return null;
+
+    const imageUrl = firstImage(product, 400);
     const favorited = isFavorited(product.id);
-    
-    // Determine badges
+
+    // The first row is above the fold and holds the LCP candidate: it must not
+    // be lazy-loaded. Everything below defers.
+    const isAboveFold = index < 4;
+
     const isNew = true; // Mock: everything is "JUST IN" for now
     const hasLowStock = product.sizes && product.sizes.some(s => s.stock > 0 && s.stock < 5);
 
     return (
-        <div 
+        <div
             className="group relative flex flex-col"
-            onMouseEnter={() => setIsHovered(true)}
+            onMouseEnter={handleMouseEnter}
             onMouseLeave={() => setIsHovered(false)}
         >
             <Link to={`/product/${product.id}`} className="block">
@@ -34,10 +49,14 @@ const ProductCard = React.memo(function ProductCard({ product, onAdded }) {
                     <img
                         src={imageUrl}
                         alt={product.name}
-                        loading="lazy"
+                        width="400"
+                        height="533"
+                        loading={isAboveFold ? 'eager' : 'lazy'}
+                        fetchpriority={isAboveFold ? 'high' : 'auto'}
+                        decoding="async"
                         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
-                    
+
                     {/* Badges */}
                     <div className="absolute top-3 left-3 flex flex-col gap-2">
                         {isNew && (
@@ -52,13 +71,14 @@ const ProductCard = React.memo(function ProductCard({ product, onAdded }) {
                         )}
                     </div>
 
-                    <button 
+                    <button
                         onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
                             toggleFavorite(product.id);
                         }}
                         className={`absolute top-3 right-3 transition-all duration-300 transform hover:scale-110 active:scale-95 z-20 p-2 rounded-full backdrop-blur-md ${favorited ? 'bg-white/90 text-red-500 shadow-lg' : 'bg-black/10 text-white/70 hover:text-red-500 hover:bg-white/50'}`}
+                        aria-label={favorited ? `Remove ${product.name} from favorites` : `Save ${product.name} to favorites`}
                     >
                         <svg className={`w-5 h-5 ${favorited ? 'fill-current' : 'fill-none'}`} stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
@@ -66,7 +86,7 @@ const ProductCard = React.memo(function ProductCard({ product, onAdded }) {
                     </button>
 
                     {/* Size Tray on Hover */}
-                    <div className={`absolute inset-x-0 bottom-0 bg-white/95 backdrop-blur-sm p-4 transition-transform duration-300 transform 
+                    <div className={`absolute inset-x-0 bottom-0 bg-white/95 backdrop-blur-sm p-4 transition-transform duration-300 transform
                         ${isHovered ? 'translate-y-0' : 'translate-y-full'}`}>
                         <p className="text-[10px] uppercase font-bold text-gray-400 mb-2 tracking-widest text-center">Quick Add</p>
                         <div className="flex flex-wrap justify-center gap-2">
@@ -80,8 +100,8 @@ const ProductCard = React.memo(function ProductCard({ product, onAdded }) {
                                         if (onAdded) onAdded();
                                     }}
                                     className={`h-8 w-8 text-xs font-bold rounded border flex items-center justify-center transition-all
-                                        ${size.stock > 0 
-                                            ? 'border-gray-200 hover:border-black hover:bg-black hover:text-white' 
+                                        ${size.stock > 0
+                                            ? 'border-gray-200 hover:border-black hover:bg-black hover:text-white'
                                             : 'border-gray-100 text-gray-300 cursor-not-allowed line-through'}`}
                                 >
                                     {size.size_label}

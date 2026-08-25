@@ -1,83 +1,79 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import ProductCard from './ProductCard';
 import Lookbook from './Lookbook';
+import {
+  fetchCategories,
+  fetchProductPage,
+  keys,
+  sizedImage,
+} from '../lib/api';
 
 export default function Homepage() {
-  const [products, setProducts] = useState([]);
-  const [totalProducts, setTotalProducts] = useState(0);
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('All');
   const [sortBy, setSortBy] = useState('popular');
-  const [page, setPage] = useState(0);
   const [toast, setToast] = useState(null);
   const [showLookbook, setShowLookbook] = useState(false);
+  const toastTimer = useRef(null);
 
   const scrollToSection = (id) => {
     const el = document.getElementById(id);
     if (el) el.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const fetchProducts = async (currentPage, isLoadMore = false) => {
-    const activeCatId = activeCategory === 'All' ? null : categories.find(c => c.name === activeCategory)?.id;
-    let url = `${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/products?limit=100&skip=${currentPage * 100}&sort_by=${sortBy}`;
-    if (activeCatId) url += `&category_id=${activeCatId}`;
-
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('Failed to fetch products');
-      const data = await res.json();
-      
-      if (isLoadMore) {
-        setProducts(prev => [...prev, ...data.items]);
-      } else {
-        setProducts(data.items);
-      }
-      setTotalProducts(data.total);
-    } catch (err) {
-      console.error("API Fetch Error:", err);
-      showToast("Failed to fetch products.");
-    }
-  };
-
-  useEffect(() => {
-    const init = async () => {
-      setLoading(true);
-      try {
-        const catRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/products/categories`);
-        if (!catRes.ok) throw new Error('Failed to fetch categories');
-        const catData = await catRes.json();
-        setCategories(catData);
-      } catch (err) {
-        console.error("API Fetch Error:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    init();
+  const showToast = useCallback((message) => {
+    setToast(message);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 3000);
   }, []);
 
-  useEffect(() => {
-    // We only want to fetch products after categories are loaded if activeCategory is not 'All'
-    if (categories.length > 0 || activeCategory === 'All') {
-      setPage(0);
-      fetchProducts(0, false);
-    }
-  }, [activeCategory, sortBy, categories]);
+  const { data: categories = [] } = useQuery({
+    queryKey: keys.categories(),
+    queryFn: fetchCategories,
+    staleTime: 5 * 60_000,
+  });
 
-  useEffect(() => {
-    if (page > 0) {
-      fetchProducts(page, true);
-    }
-  }, [page]);
+  const activeCatId = activeCategory === 'All'
+    ? null
+    : categories.find(c => c.name === activeCategory)?.id ?? null;
 
-  const showToast = (message) => {
-    setToast(message);
-    setTimeout(() => setToast(null), 3000);
-  };
+  // Products and categories now load in parallel. Previously the product
+  // effect also depended on `categories`, so it ran once on mount and again
+  // when categories resolved -- two identical requests per homepage visit.
+  const {
+    data,
+    isLoading: productsLoading,
+    isError: productsError,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: keys.products({ categoryId: activeCatId, sortBy }),
+    queryFn: ({ pageParam }) =>
+      fetchProductPage({ categoryId: activeCatId, sortBy, pageParam }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => {
+      const loaded = allPages.reduce((n, p) => n + p.items.length, 0);
+      return loaded < lastPage.total ? allPages.length : undefined;
+    },
+    placeholderData: (prev) => prev, // keep the old grid visible while re-sorting
+  });
 
-  const categoryList = ['All', ...categories.map(c => c.name)];
-  const sortedAndFilteredProducts = products; // Sorting and filtering are now handled by backend
+  const products = useMemo(
+    () => data?.pages.flatMap(p => p.items) ?? [],
+    [data]
+  );
+  const totalProducts = data?.pages[0]?.total ?? 0;
+
+  // Only the grid's own query gates the grid. Waiting on categories too would
+  // re-serialise the two requests we just made parallel; the collections strip
+  // and filter pills already hide themselves until categories arrive.
+  const loading = productsLoading;
+  const categoryList = useMemo(
+    () => ['All', ...categories.map(c => c.name)],
+    [categories]
+  );
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -125,15 +121,25 @@ export default function Homepage() {
               <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest hidden sm:block">Explore Curated Styles</span>
            </div>
            
+           {/* Link, not <a href>: a raw anchor tears down the SPA and reloads
+               the whole document, bundle and all. */}
            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
               {categories.map(cat => (
-                 <a 
-                    key={cat.id} 
-                    href={`/category/${cat.id}`}
+                 <Link
+                    key={cat.id}
+                    to={`/category/${cat.id}`}
                     className="group relative rounded-[2rem] overflow-hidden aspect-[4/5] bg-gray-100 shadow-sm hover:shadow-2xl transition-all duration-500 block"
                  >
                     {cat.image_url ? (
-                       <img src={cat.image_url} alt={cat.name} className="w-full h-full object-cover transition-transform duration-[2000ms] group-hover:scale-110" />
+                       <img
+                          src={sizedImage(cat.image_url, 500)}
+                          alt={cat.name}
+                          width="500"
+                          height="625"
+                          loading="lazy"
+                          decoding="async"
+                          className="w-full h-full object-cover transition-transform duration-[2000ms] group-hover:scale-110"
+                       />
                     ) : (
                        <div className="w-full h-full bg-gradient-to-tr from-pink-100 to-purple-200"></div>
                     )}
@@ -144,7 +150,7 @@ export default function Homepage() {
                           Explore Collection <span className="text-lg">→</span>
                        </span>
                     </div>
-                 </a>
+                 </Link>
               ))}
            </div>
         </div>
@@ -191,22 +197,32 @@ export default function Homepage() {
         <div className="flex justify-center py-40">
            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-lavender"></div>
         </div>
-      ) : sortedAndFilteredProducts.length === 0 ? (
+      ) : productsError ? (
+        <div className="text-center py-20 text-gray-500 font-medium">
+          We couldn't load the collection just now. Please refresh to try again.
+        </div>
+      ) : products.length === 0 ? (
         <div className="text-center py-20 text-gray-500 font-medium">No results found for "{activeCategory}"</div>
       ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-12">
-            {sortedAndFilteredProducts.map(product => (
-              <ProductCard key={product.id} product={product} onAdded={() => showToast(`Added ${product.name} to Bag`)} />
+            {products.map((product, i) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                index={i}
+                onAdded={() => showToast(`Added ${product.name} to Bag`)}
+              />
             ))}
           </div>
-          {products.length < totalProducts && (
+          {hasNextPage && (
             <div className="flex justify-center mt-12">
-              <button 
-                onClick={() => setPage(p => p + 1)}
-                className="border-2 border-gray-200 text-gray-600 hover:border-gray-900 hover:text-gray-900 px-8 py-3 rounded-xl font-bold uppercase tracking-widest transition-all text-xs"
+              <button
+                onClick={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
+                className="border-2 border-gray-200 text-gray-600 hover:border-gray-900 hover:text-gray-900 disabled:opacity-50 px-8 py-3 rounded-xl font-bold uppercase tracking-widest transition-all text-xs"
               >
-                Load More
+                {isFetchingNextPage ? 'Loading…' : 'Load More'}
               </button>
             </div>
           )}

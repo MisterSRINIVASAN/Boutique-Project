@@ -11,7 +11,10 @@ env/
 boutique.db
 
 # Uploads
-backend/uploads/
+# Tracked on purpose: the seeded product images are referenced by seed_db.py
+# and by the category/lookbook records, so a fresh clone needs them. Admin
+# uploads land here too -- push those to Cloudinary rather than committing
+# them if this directory starts growing.
 
 # Node
 node_modules/

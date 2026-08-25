@@ -32,7 +32,7 @@ class Product(Base):
     fabric = Column(String)
     category_id = Column(String, ForeignKey("categories.id"), index=True) # Link to dynamic category
     base_description = Column(Text)
-    price = Column(Float)
+    price = Column(Float, index=True) # indexed: two of the four sort modes order by price
     images = Column(JSON) # List of image URLs
     
     category_obj = relationship("Category", back_populates="products")

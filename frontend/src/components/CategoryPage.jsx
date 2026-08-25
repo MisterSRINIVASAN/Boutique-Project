@@ -1,69 +1,46 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useQuery, useInfiniteQuery } from '@tanstack/react-query';
 import ProductCard from './ProductCard';
+import { fetchCategories, fetchProductPage, keys, sizedImage } from '../lib/api';
 
 export default function CategoryPage() {
     const { id } = useParams();
-    const [products, setProducts] = useState([]);
-    const [totalProducts, setTotalProducts] = useState(0);
-    const [category, setCategory] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [page, setPage] = useState(0);
 
-    const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+    // Shares the cache entry the homepage already populated, so arriving from
+    // a collection tile needs no category request at all.
+    const { data: categories = [], isLoading: categoryLoading } = useQuery({
+        queryKey: keys.categories(),
+        queryFn: fetchCategories,
+        staleTime: 5 * 60_000,
+    });
 
-    const fetchProducts = async (currentPage, isLoadMore = false) => {
-        try {
-            const prodRes = await fetch(`${API_URL}/api/products?category_id=${id}&limit=100&skip=${currentPage * 100}`);
-            if (prodRes.ok) {
-                const data = await prodRes.json();
-                if (isLoadMore) {
-                    setProducts(prev => [...prev, ...data.items]);
-                } else {
-                    setProducts(data.items);
-                }
-                setTotalProducts(data.total);
-            }
-        } catch (error) {
-            console.error("Failed to fetch products", error);
-        }
-    };
+    const category = useMemo(
+        () => categories.find(c => c.id === id) ?? null,
+        [categories, id]
+    );
 
-    useEffect(() => {
-        const fetchCategoryData = async () => {
-            setLoading(true);
-            try {
-                // Fetch the specific category to get its title and image
-                const catRes = await fetch(`${API_URL}/api/products/categories`);
-                if (catRes.ok) {
-                    const cats = await catRes.json();
-                    const currentCat = cats.find(c => c.id === id);
-                    if (currentCat) {
-                        setCategory(currentCat);
-                    }
-                }
-            } catch (error) {
-                console.error("Failed to fetch category data", error);
-            } finally {
-                setLoading(false);
-            }
-        };
+    const {
+        data,
+        isLoading: productsLoading,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+    } = useInfiniteQuery({
+        queryKey: keys.products({ categoryId: id, sortBy: 'popular' }),
+        queryFn: ({ pageParam }) =>
+            fetchProductPage({ categoryId: id, sortBy: 'popular', pageParam }),
+        initialPageParam: 0,
+        getNextPageParam: (lastPage, allPages) => {
+            const loaded = allPages.reduce((n, p) => n + p.items.length, 0);
+            return loaded < lastPage.total ? allPages.length : undefined;
+        },
+    });
 
-        fetchCategoryData();
-    }, [id, API_URL]);
+    const products = useMemo(() => data?.pages.flatMap(p => p.items) ?? [], [data]);
+    const totalProducts = data?.pages[0]?.total ?? 0;
 
-    useEffect(() => {
-        setPage(0);
-        fetchProducts(0, false);
-    }, [id]);
-
-    useEffect(() => {
-        if (page > 0) {
-            fetchProducts(page, true);
-        }
-    }, [page]);
-
-    if (loading) {
+    if (categoryLoading || productsLoading) {
         return <div className="text-center py-32 text-gray-400 font-medium">Loading collection...</div>;
     }
 
@@ -81,9 +58,11 @@ export default function CategoryPage() {
             {/* Category Hero Banner */}
             <div className="relative w-full h-[40vh] sm:h-[50vh] bg-gray-100 flex items-center justify-center overflow-hidden">
                 {category.image_url ? (
-                    <img 
-                        src={category.image_url} 
-                        alt={category.name} 
+                    <img
+                        src={sizedImage(category.image_url, 1200)}
+                        alt={category.name}
+                        fetchpriority="high"
+                        decoding="async"
                         className="absolute inset-0 w-full h-full object-cover"
                     />
                 ) : (
@@ -119,19 +98,20 @@ export default function CategoryPage() {
                 ) : (
                     <>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-12">
-                            {products.map(product => (
+                            {products.map((product, i) => (
                                 <div key={product.id} className="animate-fade-in">
-                                    <ProductCard product={product} />
+                                    <ProductCard product={product} index={i} />
                                 </div>
                             ))}
                         </div>
-                        {products.length < totalProducts && (
+                        {hasNextPage && (
                             <div className="flex justify-center mt-12">
-                                <button 
-                                    onClick={() => setPage(p => p + 1)}
-                                    className="border-2 border-gray-200 text-gray-600 hover:border-gray-900 hover:text-gray-900 px-8 py-3 rounded-xl font-bold uppercase tracking-widest transition-all text-xs"
+                                <button
+                                    onClick={() => fetchNextPage()}
+                                    disabled={isFetchingNextPage}
+                                    className="border-2 border-gray-200 text-gray-600 hover:border-gray-900 hover:text-gray-900 disabled:opacity-50 px-8 py-3 rounded-xl font-bold uppercase tracking-widest transition-all text-xs"
                                 >
-                                    Load More
+                                    {isFetchingNextPage ? 'Loading…' : 'Load More'}
                                 </button>
                             </div>
                         )}

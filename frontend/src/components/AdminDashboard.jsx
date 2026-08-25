@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { apiFetch, PLACEHOLDER_IMG } from '../lib/api';
 
 export default function AdminDashboard() {
   const { token, isAdmin, logout } = useAuth();
@@ -36,42 +37,32 @@ export default function AdminDashboard() {
     }
   }, [isAdmin, navigate, token]);
 
+  // These five endpoints are independent. Awaiting them one after another
+  // stacked five round trips before the dashboard could render; they now
+  // overlap, so the wait is the slowest single request instead of the sum.
   const fetchInventory = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/admin/inventory`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.status === 401) {
+      const [inv, ord, notif, cats, lb] = await Promise.all([
+        apiFetch('/api/admin/inventory', { auth: true }),
+        apiFetch('/api/admin/orders', { auth: true }),
+        apiFetch('/api/admin/notifications', { auth: true }),
+        apiFetch('/api/admin/categories', { auth: true }),
+        apiFetch('/api/admin/lookbook', { auth: true }),
+      ]);
+
+      setInventory(inv);
+      setOrders(ord);
+      setNotifications(notif);
+      setCategories(cats);
+      setLookbook(lb);
+      if (cats.length > 0) {
+        setProductForm(prev => ({ ...prev, category_id: prev.category_id || cats[0].id }));
+      }
+    } catch (err) {
+      if (err?.status === 401) {
         navigate('/login');
         return;
       }
-      const data = await res.json();
-      setInventory(data);
-      
-      const ordersRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/admin/orders`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      setOrders(await ordersRes.json());
-
-      const notifRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/admin/notifications`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      setNotifications(await notifRes.json());
-
-      const catRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/admin/categories`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const catData = await catRes.json();
-      setCategories(catData);
-      if (catData.length > 0) {
-        setProductForm(prev => ({ ...prev, category_id: catData[0].id }));
-      }
-
-      const lbRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/admin/lookbook`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      setLookbook(await lbRes.json());
-    } catch (err) {
       console.error("DEBUG - Data fetch failed:", err);
     } finally {
       setLoading(false);
@@ -478,7 +469,7 @@ export default function AdminDashboard() {
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-14 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0 border-2 border-white shadow-md">
                               <img 
-                                src={item.product?.images?.[0] || 'https://via.placeholder.com/100x140?text=Dress'} 
+                                src={item.product?.images?.[0] || PLACEHOLDER_IMG} 
                                 alt={item.product?.name}
                                 className="w-full h-full object-cover"
                               />
